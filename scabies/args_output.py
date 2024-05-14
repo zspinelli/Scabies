@@ -83,7 +83,7 @@ def write_json(allow_overwrite: bool, filepath: str, data: dict) -> bool:
 
     # prevent file overwrite?
     if not allow_overwrite and path.exists(filepath):
-        print(strings.SKIP.format(strings.SKIP_NO_CLOBBER) + '\n')
+        print(Strings.SKIP.format(Strings.SKIP_NO_CLOBBER) + '\n')
         return False
 
     # ---- writing. ---- #
@@ -105,7 +105,7 @@ def write_toml(allow_overwrite: bool, filepath: str, data: dict) -> bool:
 
     # prevent file overwrite?
     if not allow_overwrite and path.exists(filepath):
-        print(strings.SKIP.format(strings.SKIP_NO_CLOBBER) + '\n')
+        print(Strings.SKIP.format(Strings.SKIP_NO_CLOBBER) + '\n')
         return False
 
     # ---- writing. ---- #

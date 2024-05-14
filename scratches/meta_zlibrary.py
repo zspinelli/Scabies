@@ -5,7 +5,7 @@ from scabies.scraper import Scraper
 # stdlib.
 import itertools, string
 from argparse import ArgumentParser
-from os import path
+from os import makedirs, path
 
 # scraping.
 from requests import Response
@@ -74,9 +74,17 @@ class MetaZLibary(Scraper):
         self._args = parser.parse_args()
         #print(f"input: {self._args}")
 
+        self._ensure_out_dir(self._args.output)
+
 
     def _parse_ls_size(self, arg: str):
         pass
+
+
+    def _ensure_out_dir(self, out_dir: str):
+        # dir doesn't exist.
+        if not path.exists(out_dir):
+            makedirs(out_dir)
 
 
 def run(args: list):

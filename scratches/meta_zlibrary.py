@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 from os import makedirs, path
 
 # scraping.
+from bs4 import BeautifulSoup
 from requests import Response
 
 
@@ -27,7 +28,7 @@ class MetaZLibary(Scraper):
 
         print("started zlibrary probe")
 
-        result_log = open(path.join(self._args.output, "results.txt"), "r+")
+        result_log = open(path.join(self._args.output, "results.txt"), "w+")
 
         for seq_7 in itertools.combinations(string.digits, 7):
             seq_7: str = "".join(seq_7)
@@ -39,11 +40,18 @@ class MetaZLibary(Scraper):
                 probe_url: str = f"{DOMAIN}/book/{seq_7}/{seq_6}"
                 probe_response: Response = self._sess.get(probe_url)
 
-                print(f"status: {probe_response.status_code}")
+                page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
+                book_page = page_soup.find("body", {"class": "books/details"})
 
-                # ---- write result. ---- #
+                # found a book page.
+                if book_page:
+                    print("found book page.")
+                    result_log.write(f"{seq_7}/{seq_6}\n")
 
-                result_log.write("{seq_7}/{seq_6}\n")
+                # got redirected to home.
+                else:
+                    print("nothing here.")
+
 
         print("finished zlibrary probe")
 

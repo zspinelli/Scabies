@@ -5,7 +5,7 @@ from scabies.scraper import Scraper
 # stdlib.
 import itertools, string
 from argparse import ArgumentParser
-from os import makedirs, path
+from os import path
 
 # scraping.
 from bs4 import BeautifulSoup
@@ -17,12 +17,25 @@ DOMAIN: str = "https://singlelogin.re"
 
 
 class ZLibrary(Scraper):
+    class MODES:
+        SCRAPE: str = "scrape"
+        GET: str = "get"
+
+
     def __init__(self):
         super().__init__(NAME)
 
 
     def run(self, args: list):
-        pass
+        print(Strings.OP_STARTING.format(self.name()))
+
+        self._parse_args(args)
+
+        # delegate to required mode.
+        if self._args.mode == self.MODES.SCRAPE:    self._process_scrape_mode()
+        elif self._args.mode == self.MODES.GET:     self._process_get_mode()
+
+        print(Strings.OP_FINISHED.format(NAME))
 
 
     def _parse_args(self, args: list):
@@ -41,9 +54,19 @@ class ZLibrary(Scraper):
 
         # ---- scrape mode. ---- #
 
+        scrape_mode: ArgumentParser = modes.add_parser(self.MODES.SCRAPE)
+
+        scrape_mode.add_argument(
+            '-ls',
+            default="1024mb",
+            type=self._parse_log_size,
+            help="log size. restrict the result logs filesize. units: (b, kb, mb, gb)",
+            dest="log_size"
+        )
 
         # ---- get mode. ---- #
 
+        get_mode: ArgumentParser = modes.add_parser(self.MODES.GET)
 
         # ---- parse and validate. ---- #
 
@@ -59,32 +82,53 @@ class ZLibrary(Scraper):
         args_time.validate_time_selection_args(self._args)
 
 
+    def _process_scrape_mode(self):
+        group: str = "0" * 7
+
+        while group != "z" * 7:
+            hash: str = "0" * 6
+
+            while hash != "z" * 6:
+                hash = self._increment_ordinator_string(hash)
+
+            group = self._increment_ordinator_string(group)
 
 
+    def _process_get_mode(self):
+        pass
 
 
-        # ---- output. ---- #
+    def _parse_log_size(self, arg: str):
+        pass
 
-        parser.add_argument(
-            "-o",
-            help="output path. writes scrape result log in the given directory.",
-            dest="output"
-        )
 
-        parser.add_argument(
-            '-ls',
-            default="1024mb",
-            type=self._parse_ls_size,
-            help="log size. restrict the result logs filesize. units: (b, kb, mb, gb)",
-            dest="log_size"
-        )
+    def _increment_ordinator_string(self, ord_string: str) -> str:
+        # saftey mechanism.
+        if not ord_string:
+            return ""
 
-        # ---- parse and validate. ---- #
+        i: int = -1
 
-        self._args = parser.parse_args()
-        #print(f"input: {self._args}")
+        while True:
+            ord_val: int = ord(ord_string[i])
 
-        self._ensure_out_dir(self._args.output)
+            # rollover from '9' to 'a'.
+            if ord_val == 57:
+                ord_string = ord_string[:i] + "a" + ord_string[i:]
+                break
+
+            # increment 0-9, or a-z.
+            elif ord_val < 57 or ord_val < 122:
+                ord_string = ord_string[:i] + chr(ord_val + 1) + ord_string[i:]
+                break
+
+            # rollover from 'z' to '0'.
+            elif ord_val == 122:
+                ord_string = ord_string[:i] + "0" + ord_string[i:]
+                i += 1
+
+        return ord_string
+
 
 
 
@@ -94,9 +138,9 @@ class MetaZLibary(Scraper):
 
 
     def run(self, args: list):
-        print(Strings.OP_STARTING.format(self.name()))
 
-        self._parse_args(args)
+
+
 
         print("started zlibrary probe")
 
@@ -127,7 +171,7 @@ class MetaZLibary(Scraper):
 
         print("finished zlibrary probe")
 
-        print(Strings.OP_FINISHED.format(NAME))
+
 
 
     def _parse_args(self, args: list):
@@ -140,31 +184,6 @@ class MetaZLibary(Scraper):
             help="output path. writes scrape result log in the given directory.",
             dest="output"
         )
-
-        parser.add_argument(
-            '-ls',
-            default="1024mb",
-            type=self._parse_ls_size,
-            help="log size. restrict the result logs filesize. units: (b, kb, mb, gb)",
-            dest="log_size"
-        )
-
-        # ---- parse and validate. ---- #
-
-        self._args = parser.parse_args()
-        #print(f"input: {self._args}")
-
-        self._ensure_out_dir(self._args.output)
-
-
-    def _parse_ls_size(self, arg: str):
-        pass
-
-
-    def _ensure_out_dir(self, out_dir: str):
-        # dir doesn't exist.
-        if not path.exists(out_dir):
-            makedirs(out_dir)
 
 
 def run(args: list):

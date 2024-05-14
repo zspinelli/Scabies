@@ -1,5 +1,5 @@
 # scabies.
-from scabies import Strings
+from scabies import Strings, args_output, args_time
 from scabies.scraper import Scraper
 
 # stdlib.
@@ -14,6 +14,78 @@ from requests import Response
 
 NAME: str = "zlibrary"
 DOMAIN: str = "https://singlelogin.re"
+
+
+class ZLibrary(Scraper):
+    def __init__(self):
+        super().__init__(NAME)
+
+
+    def run(self, args: list):
+        pass
+
+
+    def _parse_args(self, args: list):
+        parser: ArgumentParser = ArgumentParser(description="scabies for zlibrary")
+        modes = parser.add_subparsers(
+            title="modes",
+            dest="mode",
+            required=True,
+            help="see individual mode helps for additional options"
+        )
+
+        # ---- external features. ---- #
+
+        args_output.add_output_args(parser)
+        args_output.add_metadata_args(parser)
+
+        # ---- scrape mode. ---- #
+
+
+        # ---- get mode. ---- #
+
+
+        # ---- parse and validate. ---- #
+
+        self._args = parser.parse_args()
+        #print(f"input: {self._args}")
+
+        # unstructured output wanted.
+        if self._args.output_unstructured:
+            self._destination_dir = self._args.output_unstructured
+
+        args_output.validate_metadata_args(self._args)
+
+        args_time.validate_time_selection_args(self._args)
+
+
+
+
+
+
+        # ---- output. ---- #
+
+        parser.add_argument(
+            "-o",
+            help="output path. writes scrape result log in the given directory.",
+            dest="output"
+        )
+
+        parser.add_argument(
+            '-ls',
+            default="1024mb",
+            type=self._parse_ls_size,
+            help="log size. restrict the result logs filesize. units: (b, kb, mb, gb)",
+            dest="log_size"
+        )
+
+        # ---- parse and validate. ---- #
+
+        self._args = parser.parse_args()
+        #print(f"input: {self._args}")
+
+        self._ensure_out_dir(self._args.output)
+
 
 
 class MetaZLibary(Scraper):

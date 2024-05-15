@@ -5,6 +5,7 @@ from scabies.scraper import Scraper
 # stdlib.
 import itertools, string
 from argparse import ArgumentParser
+from multiprocessing import cpu_count ,Pool
 from os import path
 
 # scraping.
@@ -16,12 +17,7 @@ NAME: str = "zlibrary"
 DOMAIN: str = "https://singlelogin.re"
 
 
-class ZLibrary(Scraper):
-    class MODES:
-        SCRAPE: str = "scrape"
-        GET: str = "get"
-
-
+class ZLibraryMeta(Scraper):
     def __init__(self):
         super().__init__(NAME)
 
@@ -31,32 +27,27 @@ class ZLibrary(Scraper):
 
         self._parse_args(args)
 
-        # delegate to required mode.
-        if self._args.mode == self.MODES.SCRAPE:    self._process_scrape_mode()
-        elif self._args.mode == self.MODES.GET:     self._process_get_mode()
+        thread_pool: Pool = Pool(cpu_count())
+
+        with "0" * 7 as group:
+            while group != "z" * 7:
+                thread_pool.apply_async(self._async_task, group)
+
+                group = self._increment_ordinator_string(group)
 
         print(Strings.OP_FINISHED.format(NAME))
 
 
     def _parse_args(self, args: list):
         parser: ArgumentParser = ArgumentParser(description="scabies for zlibrary")
-        modes = parser.add_subparsers(
-            title="modes",
-            dest="mode",
-            required=True,
-            help="see individual mode helps for additional options"
+
+        parser.add_argument(
+            "-o",
+            help="output path. writes scrape result log in the given directory.",
+            dest="output"
         )
 
-        # ---- external features. ---- #
-
-        args_output.add_output_args(parser)
-        args_output.add_metadata_args(parser)
-
-        # ---- scrape mode. ---- #
-
-        scrape_mode: ArgumentParser = modes.add_parser(self.MODES.SCRAPE)
-
-        scrape_mode.add_argument(
+        parser.add_argument(
             '-ls',
             default="1024mb",
             type=self._parse_log_size,
@@ -64,42 +55,47 @@ class ZLibrary(Scraper):
             dest="log_size"
         )
 
-        # ---- get mode. ---- #
-
-        get_mode: ArgumentParser = modes.add_parser(self.MODES.GET)
-
         # ---- parse and validate. ---- #
 
         self._args = parser.parse_args()
         #print(f"input: {self._args}")
 
-        # unstructured output wanted.
-        if self._args.output_unstructured:
-            self._destination_dir = self._args.output_unstructured
-
-        args_output.validate_metadata_args(self._args)
-
-        args_time.validate_time_selection_args(self._args)
-
-
-    def _process_scrape_mode(self):
-        group: str = "0" * 7
-
-        while group != "z" * 7:
-            hash: str = "0" * 6
-
-            while hash != "z" * 6:
-                hash = self._increment_ordinator_string(hash)
-
-            group = self._increment_ordinator_string(group)
-
-
-    def _process_get_mode(self):
-        pass
-
 
     def _parse_log_size(self, arg: str):
+        # todo: finish.
         pass
+
+
+    def _async_task(self, group: str):
+        result_log = None
+
+        with "0" * 6 as hash:
+            while hash != "z" * 6:
+                group_hash: str = f"{group}/{hash}"
+
+                print(f"testing: {group_hash} ... ", end="")
+
+                probe_url: str = f"{DOMAIN}/book/{group_hash}"
+                probe_response: Response = self._sess.get(probe_url)
+
+                page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
+                book_page = page_soup.find("body", {"class": "books/details"})
+
+                # found a book page.
+                if book_page:
+                    print("found book page.")
+
+                    # log not open yet.
+                    if not result_log:
+                        result_log = open(path.join(self._args.output, "results.txt"), "w+")
+
+                    result_log.write(f"{group_hash}\n")
+
+                # got redirected to home.
+                else:
+                    print("nothing here.")
+
+                hash = self._increment_ordinator_string(hash)
 
 
     def _increment_ordinator_string(self, ord_string: str) -> str:
@@ -130,64 +126,8 @@ class ZLibrary(Scraper):
         return ord_string
 
 
-
-
-class MetaZLibary(Scraper):
-    def __init__(self):
-        super().__init__(NAME)
-
-
-    def run(self, args: list):
-
-
-
-
-        print("started zlibrary probe")
-
-        result_log = open(path.join(self._args.output, "results.txt"), "w+")
-
-        for seq_7 in itertools.combinations(string.digits, 7):
-            seq_7: str = "".join(seq_7)
-
-            for seq_6 in itertools.combinations(string.ascii_lowercase + string.digits, 6):
-                seq_6: str = "".join(seq_6)
-                print(f"testing: {seq_7}/{seq_6} ... ", end="")
-
-                probe_url: str = f"{DOMAIN}/book/{seq_7}/{seq_6}"
-                probe_response: Response = self._sess.get(probe_url)
-
-                page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
-                book_page = page_soup.find("body", {"class": "books/details"})
-
-                # found a book page.
-                if book_page:
-                    print("found book page.")
-                    result_log.write(f"{seq_7}/{seq_6}\n")
-
-                # got redirected to home.
-                else:
-                    print("nothing here.")
-
-
-        print("finished zlibrary probe")
-
-
-
-
-    def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description="scabies for azlyrics")
-
-        # ---- output. ---- #
-
-        parser.add_argument(
-            "-o",
-            help="output path. writes scrape result log in the given directory.",
-            dest="output"
-        )
-
-
 def run(args: list):
-    scraper: MetaZLibary = MetaZLibary()
+    scraper: ZLibraryMeta = ZLibraryMeta()
     scraper.run(args)
 
 

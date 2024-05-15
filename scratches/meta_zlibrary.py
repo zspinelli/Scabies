@@ -1,5 +1,5 @@
 # scabies.
-from scabies import Strings, args_output, args_time
+from scabies import Strings
 from scabies.scraper import Scraper
 
 # stdlib.
@@ -29,11 +29,12 @@ class ZLibraryMeta(Scraper):
 
         thread_pool: Pool = Pool(cpu_count())
 
-        with "0" * 7 as group:
-            while group != "z" * 7:
-                thread_pool.apply_async(self._async_task, group)
+        group: str = "0" * 7
 
-                group = self._increment_ordinator_string(group)
+        while group != "z" * 7:
+            thread_pool.apply_async(self._async_task, group)
+
+            group = self._increment_ordinator_string(group)
 
         print(Strings.OP_FINISHED.format(NAME))
 
@@ -68,34 +69,34 @@ class ZLibraryMeta(Scraper):
 
     def _async_task(self, group: str):
         result_log = None
+        hash: str = "0" * 6
 
-        with "0" * 6 as hash:
-            while hash != "z" * 6:
-                group_hash: str = f"{group}/{hash}"
+        while hash != "z" * 6:
+            group_hash: str = f"{group}/{hash}"
 
-                print(f"testing: {group_hash} ... ", end="")
+            print(f"testing: {group_hash} ... ", end="")
 
-                probe_url: str = f"{DOMAIN}/book/{group_hash}"
-                probe_response: Response = self._sess.get(probe_url)
+            probe_url: str = f"{DOMAIN}/book/{group_hash}"
+            probe_response: Response = self._sess.get(probe_url)
 
-                page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
-                book_page = page_soup.find("body", {"class": "books/details"})
+            page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
+            book_page = page_soup.find("body", {"class": "books/details"})
 
-                # found a book page.
-                if book_page:
-                    print("found book page.")
+            # found a book page.
+            if book_page:
+                print("found book page.")
 
-                    # log not open yet.
-                    if not result_log:
-                        result_log = open(path.join(self._args.output, "results.txt"), "w+")
+                # log not open yet.
+                if not result_log:
+                    result_log = open(path.join(self._args.output, "results.txt"), "w+")
 
-                    result_log.write(f"{group_hash}\n")
+                result_log.write(f"{group_hash}\n")
 
-                # got redirected to home.
-                else:
-                    print("nothing here.")
+            # got redirected to home.
+            else:
+                print("nothing here.")
 
-                hash = self._increment_ordinator_string(hash)
+            hash = self._increment_ordinator_string(hash)
 
 
     def _increment_ordinator_string(self, ord_string: str) -> str:

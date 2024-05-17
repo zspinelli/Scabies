@@ -3,7 +3,6 @@ from scabies import Strings
 from scabies.scraper import Scraper
 
 # stdlib.
-import itertools, string
 from argparse import ArgumentParser
 from multiprocessing import cpu_count ,Pool
 from os import path
@@ -18,8 +17,14 @@ DOMAIN: str = "https://singlelogin.re"
 
 
 class ZLibraryMeta(Scraper):
+    _GROUP_LENGTH: int = 7
+    _HASH_LENGTH: int = 6
+
+
     def __init__(self):
         super().__init__(NAME)
+
+        self._thread_pool: Pool = Pool(cpu_count())
 
 
     def run(self, args: list):
@@ -27,16 +32,24 @@ class ZLibraryMeta(Scraper):
 
         self._parse_args(args)
 
-        thread_pool: Pool = Pool(cpu_count())
+
+
+        print(Strings.OP_FINISHED.format(NAME))
+
+
+
+
+
 
         group: str = "0" * 7
 
         while group != "z" * 7:
+            print(group)
             thread_pool.apply_async(self._async_task, group)
 
             group = self._increment_ordinator_string(group)
 
-        print(Strings.OP_FINISHED.format(NAME))
+
 
 
     def _parse_args(self, args: list):
@@ -49,11 +62,10 @@ class ZLibraryMeta(Scraper):
         )
 
         parser.add_argument(
-            '-ls',
-            default="1024mb",
-            type=self._parse_log_size,
-            help="log size. restrict the result logs filesize. units: (b, kb, mb, gb)",
-            dest="log_size"
+            "--lsr",
+            action="store_true",
+            help="resume last run state from logs",
+            dest="need_state_resume"
         )
 
         # ---- parse and validate. ---- #
@@ -62,14 +74,9 @@ class ZLibraryMeta(Scraper):
         #print(f"input: {self._args}")
 
 
-    def _parse_log_size(self, arg: str):
-        # todo: finish.
-        pass
-
-
-    def _async_task(self, group: str):
+    def _async_task(self, group: str, hash: str= "0" * 6):
         result_log = None
-        hash: str = "0" * 6
+        hash: str = hash
 
         while hash != "z" * 6:
             group_hash: str = f"{group}/{hash}"
@@ -104,25 +111,27 @@ class ZLibraryMeta(Scraper):
         if not ord_string:
             return ""
 
-        i: int = -1
+        i: int = len(ord_string)
 
         while True:
-            ord_val: int = ord(ord_string[i])
+            front: str = ord_string[:i - 1]
+            back: str = ord_string[i:]
+            ord_val: int = ord(ord_string[i - 1])
 
             # rollover from '9' to 'a'.
             if ord_val == 57:
-                ord_string = ord_string[:i] + "a" + ord_string[i:]
-                break
-
-            # increment 0-9, or a-z.
-            elif ord_val < 57 or ord_val < 122:
-                ord_string = ord_string[:i] + chr(ord_val + 1) + ord_string[i:]
+                ord_string = front + "a" + back
                 break
 
             # rollover from 'z' to '0'.
             elif ord_val == 122:
-                ord_string = ord_string[:i] + "0" + ord_string[i:]
-                i += 1
+                ord_string = front + "0" + back
+                i -= 1
+
+            # increment 0-9, or a-z.
+            elif ord_val < 57 or ord_val < 122:
+                ord_string = front + chr(ord_val + 1) + back
+                break
 
         return ord_string
 

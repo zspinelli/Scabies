@@ -4,7 +4,7 @@ CURRENT KNOWN ISSUES:
 """
 
 # scabies.
-from scabies import args_cookies, args_login, args_output, args_time, Strings
+from scabies import args_cookies, args_output, args_time, Strings
 from scabies.scraper import Scraper
 from scabies.switchplate import SwitchPlate
 
@@ -98,7 +98,6 @@ class Artstation(Scraper):
         args_output.add_metadata_args(parser)
 
         args_cookies.add_cookie_args(parser)
-        args_login.add_login_args(parser, "email")
 
         # ---- search mode. ---- #
 
@@ -183,7 +182,6 @@ class Artstation(Scraper):
         args_output.validate_metadata_args(self._args)
 
         args_cookies.validate_cookie_args(self._args, self._sess)
-        args_login.validate_login_args(self._args)
 
         args_time.validate_time_selection_args(self._args)
 
@@ -213,42 +211,6 @@ class Artstation(Scraper):
             help=Strings.SEQ_STR_COMBO.format(self.PROJECT_PARTS.legend()),
             dest="project_parts"
         )
-
-
-    def _login(self):
-        login_url: str = f"{DOMAIN}/api/v2/authentication/session/login.json"
-
-        data: dict = {
-            "form_type": "modal",
-            "email": self._args.u,
-            "password": self._args.p,
-            "captcha_token": "",
-            "captcha_session_id": "",
-            "captcha_public_ip": ""
-        }
-
-        headers: dict = {
-            "Accept": "*/*",
-            "Origin": DOMAIN,
-            "Referer": DOMAIN + "/"
-        }
-
-        headers.update(self._get_csrf_token())
-
-        login_response: Response = self._sess.post(
-            login_url,
-            data,
-            headers= headers
-        )
-        print(login_response)
-
-
-    def _ensure_login(self) -> bool:
-        # ensure login.
-        if not self._logged_in:
-            print("cannot scrape learning without logging in.")
-
-        return self._logged_in
 
 
     def _process_search_mode(self):

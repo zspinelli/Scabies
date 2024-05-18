@@ -1,6 +1,4 @@
 # scabies.
-from requests import Response
-
 from scabies import args_cookies, args_output, Strings, args_time
 from scabies.scraper import Scraper
 from scabies.switchplate import SwitchPlate
@@ -8,6 +6,10 @@ from scabies.switchplate import SwitchPlate
 # stdlib.
 from argparse import ArgumentParser
 from os import path
+
+# scraping.
+from bs4 import BeautifulSoup
+from requests import Response
 
 
 NAME: str = "furaffinity"
@@ -224,7 +226,7 @@ class Furaffinity(Scraper):
                 pass
 
             # favorites.
-            if self.USER_PARTS.CODES.FAVS in self._args.user_parts:
+            if self.USER_PARTS.CODES.FAVORITES in self._args.user_parts:
                 pass
 
             # journals.
@@ -255,47 +257,48 @@ class Furaffinity(Scraper):
 
         while True:
             page_url: str = DOMAIN + f"/{part}/{page_num}"
-            print(page_url)
-            #page_response: Response = self._sess.get(page_url)
-
-            break
-
-            """
             page_response: Response = self._sess.get(page_url)
 
-            print(f"page # {num}:", page_response.status_code)
+            page_soup: BeautifulSoup = BeautifulSoup(page_response.content, "html.parser")
 
-            # bad page.
-            if page_response.status_code != 200:
+        return []
+
+        """
+        page_response: Response = self._sess.get(page_url)
+
+        print(f"page # {num}:", page_response.status_code)
+
+        # bad page.
+        if page_response.status_code != 200:
+            break
+
+        num += 1
+        """
+
+
+        """
+        page: str = self._sess.get(page_url).text
+
+        pos: int = 0
+        begin: str = "id=\"sid-"
+        end: str = "\""
+
+        while True:
+            first = page.find(begin, pos)
+
+            # nothing to do.
+            if first == -1:
                 break
 
-            num += 1
-            """
+            first += len(begin)
+            last = page.find(end, first)
+            post_id = page[first:last]
+            pos = last + len(end)
 
+            yield post_id
 
-            """
-            page: str = self._sess.get(page_url).text
-
-            pos: int = 0
-            begin: str = "id=\"sid-"
-            end: str = "\""
-
-            while True:
-                first = page.find(begin, pos)
-
-                # nothing to do.
-                if first == -1:
-                    break
-
-                first += len(begin)
-                last = page.find(end, first)
-                post_id = page[first:last]
-                pos = last + len(end)
-
-                yield post_id
-
-            num += 1
-            """
+        num += 1
+        """
 
 
 def run(args: list):

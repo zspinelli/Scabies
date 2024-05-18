@@ -1,5 +1,4 @@
 # stdlib.
-import curses
 from argparse import ArgumentParser, Namespace
 from importlib import import_module
 from os import listdir, path
@@ -10,6 +9,12 @@ from types import ModuleType
 class MODES:
     COMMAND: str = "cmd"
     AUTOMATE: str = "auto"
+
+
+class CMDS:
+    EXIT: str = "exit"
+    EDIT_CONFIG: str = "edit-config"
+    AUTOLIST: str = "autolist"
 
 
 def _parse_args(args: list) -> Namespace:
@@ -33,34 +38,20 @@ def _parse_args(args: list) -> Namespace:
 
 
 def _process_cmd_mode():
-    parser: ArgumentParser = ArgumentParser()
-    commands = parser.add_subparsers(
-        title="commands",
-        dest="cmd",
-        required=True,
-        help="see individual command helps for details"
-    )
+    while True:
+        cmd: Namespace = _parse_cmd(input("cmd:").split())
 
-    # ---- exit command. ---- #
+        # exit.
+        if cmd.cmd == CMDS.EXIT:
+            break
 
-    commands.add_parser(
-        "exit",
-        help="exit the program"
-    )
+        # edit config file.
+        elif cmd.cmd == CMDS.EDIT_CONFIG:
+            pass
 
-    # ---- edit command. ---- #
-
-    commands.add_parser(
-        "edit-config",
-        help="edit the config file in an interactive interface"
-    )
-
-    # ---- autolist command. ---- #
-
-    commands.add_parser(
-        "autolist",
-        help="specify an automation list to put any recorded commands in"
-    )
+        # set autolist file.
+        elif cmd.cmd == CMDS.AUTOLIST:
+            pass
 
 
 def _process_auto_mode():
@@ -82,24 +73,39 @@ def _gather_scratches() -> list:
     return scratches
 
 
-def _parse_cmd():
-    pass
+def _parse_cmd(args: list) -> Namespace:
+    parser: ArgumentParser = ArgumentParser()
+    commands = parser.add_subparsers(
+        title="commands",
+        dest="cmd",
+        required=True,
+        help="see individual command helps for details"
+    )
 
+    # ---- exit. ---- #
 
-def _curses_tui():
-    screen = curses.initscr()
+    commands.add_parser(
+        CMDS.EXIT,
+        help="exit the program"
+    )
 
-    curses.noecho()
-    screen.keypad(True)
-    curses.cbreak()
+    # ---- edit. ---- #
 
-    # todo: finish tui.
+    commands.add_parser(
+        CMDS.EDIT_CONFIG,
+        help="edit the config file in an interactive interface"
+    )
 
-    curses.nocbreak()
-    screen.keypad(False)
-    curses.echo()
+    # ---- autolist. ---- #
 
-    curses.endwin()
+    commands.add_parser(
+        CMDS.AUTOLIST,
+        help="specify an automation list to put any recorded commands in"
+    )
+
+    # ---- results. ---- #
+
+    return parser.parse_args(args)
 
 
 if __name__ == "__main__":

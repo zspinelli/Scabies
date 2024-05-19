@@ -1,6 +1,6 @@
 # stdlib.
-from abc import ABC, abstractmethod
-from argparse import Namespace, ArgumentParser
+from abc import ABC
+from argparse import Namespace, ArgumentParser, REMAINDER
 from datetime import datetime
 from os import path, makedirs
 from urllib.parse import urlparse, ParseResult
@@ -30,7 +30,7 @@ class Resolver(ABC):
     match.__doc__ = "try to match the string with one of the patterns."
 
 
-class Scraper(ABC):
+class Scraper:
     __doc__ = "base class for all scrapers. features name(), run(), and _parse_args() to " \
         "assist automation by the umbrella cli."
 
@@ -50,22 +50,32 @@ class Scraper(ABC):
     name.__doc__ = "return the name of the scraper as str"
 
 
-    @abstractmethod
     def run(self, args: list):
         print(Strings.OP_STARTING.format(self.name()))
 
         self._parse_args(args)
 
+        urls_todo: list = self._args.urls
         urls_done: list = []
-        urls_todo: list = []
 
-        for url in self._args.urls:
-            page_response: Response = self._sess.get(url)
+        print(Strings.OP_FINISHED.format(self.name()))
+
+        """
+        while urls_todo:
+            current_url: str = urls_todo.pop()
+
+            url_parts = urlparse(current_url)
+            print(url_parts)
+
+            #self._destination_dir =
+
+
+            page_response: Response = self._sess.get(current_url)
             page_soup: BeautifulSoup = BeautifulSoup(page_response.text, "html.parser")
 
             # ---- ensure destination. ---- #
 
-            self._url_parts: ParseResult = urlparse(url)
+            self._url_parts: ParseResult = urlparse(current_url)
             print(self._url_parts)
 
             self._destination_dir = f"{self._args.o}/{self._url_parts.netloc}{path.splitext(self._url_parts.path)[0]}"
@@ -99,21 +109,32 @@ class Scraper(ABC):
 
             # ---- prepare for next url. ---- #
 
-            urls_done.append(url)
+            urls_done.append(current_url)
             self._html_file.close()
-
-        print(Strings.OP_FINISHED.format(self.name()))
+            
+        """
 
     run.__doc__ = "run the scraper on parameters: list[str] passed to args"
 
 
-    @abstractmethod
     def _parse_args(self, args: list):
         parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
 
         parser.add_argument(
-            ""
+            '-o',
+            dest='output',
+            type=str,
+            help='Output file'
         )
+
+        parser.add_argument(
+            'urls',
+            nargs=REMAINDER,
+            type=str,
+            help='URLs to scrape'
+        )
+
+        self._args = parser.parse_args(args)
 
     _parse_args.__doc__ = "parse the parameters: list[str] passed from self.run()"
 

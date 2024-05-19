@@ -56,7 +56,8 @@ class Felthier(Scraper):
             self.title: str = self._sanitize_name(anchor.text).rstrip(".")
             self.filepath_out: str = path.join(dest_dir, self.title)
             self.ext: str = path.splitext(anchor["href"])[1]
-            self.date: datetime = datetime.strptime(anchor[2].text[:16], time.TIME_FORMAT)
+            self.date: datetime = datetime.strptime(anchor[2].text[:16], args_time.TIME_FORMAT)
+
 
         def _sanitize_name(self, name: str) -> str:
             new_name = name
@@ -74,7 +75,7 @@ class Felthier(Scraper):
 
 
     def run(self, args: list):
-        print(strings.OP_STARTING.format(NAME))
+        print(Strings.OP_STARTING.format(NAME))
 
         self._sess.proxies = {
             "http": "socks5h://localhost:9150",
@@ -89,11 +90,11 @@ class Felthier(Scraper):
         if self._args.mode == self.MODES.USER:    self._process_user_mode()
         elif self._args.mode == self.MODES.POST:  self._process_post_mode()
 
-        print(strings.OP_FINISHED.format(NAME))
+        print(Strings.OP_FINISHED.format(NAME))
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description="scabies for felthier furaffinity archive")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
         modes = parser.add_subparsers(
             title="modes",
             dest="mode",
@@ -103,8 +104,8 @@ class Felthier(Scraper):
 
         # ---- external features. ---- #
 
-        output.add_output_args(parser)
-        output.add_metadata_args(parser)
+        args_output.add_output_args(parser)
+        args_output.add_metadata_args(parser)
 
         tor.add_tor_args(parser)
 
@@ -112,12 +113,12 @@ class Felthier(Scraper):
 
         user_mode: ArgumentParser = modes.add_parser(self.MODES.USER)
 
-        time.add_time_selection_args(user_mode)
+        args_time.add_time_selection_args(user_mode)
 
         user_mode.add_argument(
             "-pt",
             default=self.POST_TYPES.default(),
-            help=strings.SEQ_STR_COMBO.format(self.POST_TYPES.legend()),
+            help=Strings.SEQ_STR_COMBO.format(self.POST_TYPES.legend()),
             dest="post_types"
         )
 
@@ -126,7 +127,7 @@ class Felthier(Scraper):
         user_mode.add_argument(
             "names",
             nargs="+",
-            help=strings.SEQ_SEP_SPACE.format("user names")
+            help=Strings.SEQ_SEP_SPACE.format("user names")
         )
 
         # ---- post mode. ---- #
@@ -154,24 +155,24 @@ class Felthier(Scraper):
         if self._args.output_unstructured:
             _dest_dir = self._args.output_unstructured
 
-        output.validate_metadata_args(self._args)
+        args_output.validate_metadata_args(self._args)
         tor.validate_tor_args(self._args)
 
-        time.validate_time_selection_args(self._args)
+        args_time.validate_time_selection_args(self._args)
 
 
     def _add_post_parts(self, parser: ArgumentParser):
         parser.add_argument(
             "-pp",
             default=self.POST_PARTS.default(),
-            help=strings.SEQ_STR_COMBO.format(self.POST_PARTS.legend()),
+            help=Strings.SEQ_STR_COMBO.format(self.POST_PARTS.legend()),
             dest="post_parts"
         )
 
 
     def _process_user_mode(self):
         for name in self._args.names:
-            print(strings.USER_STARTED.format(name))
+            print(Strings.USER_STARTED.format(name))
 
             # structured output wanted.
             if self._args.output_structured:
@@ -179,8 +180,8 @@ class Felthier(Scraper):
 
             # need to read time resume file.
             if self._args.need_time_resume:
-                self._resume_filepath = path.join(self._destination_dir, time.resume_filename(name))
-                self._resume_time = time.read_time_resume(self._resume_filepath)
+                self._resume_filepath = path.join(self._destination_dir, args_time.resume_filename(name))
+                self._resume_time = args_time.read_time_resume(self._resume_filepath)
 
             subdirs: list = [name + "/"]
 
@@ -211,12 +212,12 @@ class Felthier(Scraper):
 
                     # skip for last run resume.
                     if self._args.need_time_resume and info.date <= self._resume_time:
-                        print(strings.SKIP.format(strings.SKIP_TIME_RESUME))
+                        print(Strings.SKIP.format(Strings.SKIP_TIME_RESUME))
                         continue
 
                     # skip for time cutoff.
-                    if self._args.need_time_cutoff and time.exceeds_time_cutoff_limits(self._args, info.date):
-                        print(strings.SKIP.format("date cutoff"))
+                    if self._args.need_time_cutoff and args_time.exceeds_time_cutoff_limits(self._args, info.date):
+                        print(Strings.SKIP.format("date cutoff"))
                         continue
 
                     # ---- detect content type. ---- #
@@ -252,9 +253,9 @@ class Felthier(Scraper):
 
             # need to write time resume file.
             if self._args.need_time_resume:
-                time.write_time_resume(self._resume_filepath)
+                args_time.write_time_resume(self._resume_filepath)
 
-            print(strings.USER_FINISHED.format(name))
+            print(Strings.USER_FINISHED.format(name))
 
 
     def _process_post_mode(self):
@@ -270,11 +271,11 @@ class Felthier(Scraper):
     def _scrape_data(self, info: PostInfo):
         # don't overwrite existing files.
         if not self._args.allow_overwrite and path.exists(info.filepath_out):
-            print(strings.SKIP.format(strings.SKIP_NO_CLOBBER))
+            print(Strings.SKIP.format(Strings.SKIP_NO_CLOBBER))
             return
 
         payload: Response = self._sess.get(info.link, stream=True)
-        output.write_binary(info.filepath_out + info.ext, payload.content)
+        args_output.write_binary(info.filepath_out + info.ext, payload.content)
 
 
     def _save_metadata(self, desc: str, info: PostInfo):
@@ -293,12 +294,12 @@ class Felthier(Scraper):
         # want json metadata.
         if self._args.json_meta:
             data: dict = {**meta, **extra}
-            output.write_json(self._args.allow_overwrite_meta, info.filepath_out, data)
+            args_output.write_json(self._args.allow_overwrite_meta, info.filepath_out, data)
 
         # want toml metadata.
         if self._args.toml_meta:
             data: dict = {**meta, **extra}
-            output.write_toml(self._args.allow_overwrite_meta, info.filepath_out, data)
+            args_output.write_toml(self._args.allow_overwrite_meta, info.filepath_out, data)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,11 @@
+# stdlib.
+from argparse import ArgumentParser
+
 # scabies.
 from scabies.scraper import Scraper
 
 
-NAME: str = "deviantart_meta"
+NAME: str = "deviantart-meta"
 DOMAIN: str = "https://www.deviantart.com/"
 
 
@@ -16,4 +19,4 @@ class MetaDeviantArt(Scraper):
 
 
     def _parse_args(self, args: list):
-        pass
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")

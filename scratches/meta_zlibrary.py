@@ -4,7 +4,7 @@ from scabies.scraper import Scraper
 
 # stdlib.
 from argparse import ArgumentParser
-from multiprocessing import cpu_count ,Pool
+from multiprocessing import cpu_count, Pool
 from os import path
 
 # scraping.
@@ -53,7 +53,7 @@ class ZLibraryMeta(Scraper):
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description="scabies for zlibrary")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
 
         parser.add_argument(
             "-o",

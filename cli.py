@@ -15,6 +15,7 @@ class CMDS:
     EXIT: str = "exit"
     EDIT_CONFIG: str = "edit-config"
     AUTOLIST: str = "autolist"
+    SCRATCH: str = "scratch"
 
 
 def _parse_args(args: list) -> Namespace:
@@ -39,6 +40,8 @@ def _parse_args(args: list) -> Namespace:
 
 def _process_cmd_mode():
     while True:
+        print("hint: enter -h as a command to get help text.")
+
         cmd: Namespace = _parse_cmd(input("cmd:").split())
 
         # exit.
@@ -51,6 +54,10 @@ def _process_cmd_mode():
 
         # set autolist file.
         elif cmd.cmd == CMDS.AUTOLIST:
+            pass
+
+        # scrape a url.
+        elif cmd.cmd == CMDS.SCRATCH:
             pass
 
 
@@ -101,6 +108,31 @@ def _parse_cmd(args: list) -> Namespace:
     commands.add_parser(
         CMDS.AUTOLIST,
         help="specify an automation list to put any recorded commands in"
+    )
+
+    # ---- scratch. ---- #
+
+    scratch_command = commands.add_parser(
+        CMDS.SCRATCH,
+        help="try scraping one or more urls"
+    )
+
+    scratch_command.add_argument(
+        "--record",
+        action="store_true",
+        help="record to autolist"
+    )
+
+    scratch_command.add_argument(
+        "--generic",
+        action="store_true",
+        help="use the generic scraper"
+    )
+
+    scratch_command.add_argument(
+        "urls",
+        nargs="+",
+        help="list of urls to scrape"
     )
 
     # ---- results. ---- #
@@ -164,16 +196,9 @@ class ModInfo:
 def _parse_cmd():
     # ---- scratch command. ---- #
 
-    scratch_command = commands.add_parser(
-        "scratch",
-        help="try scraping one or more urls"
-    )
 
-    scratch_command.add_argument(
-        "--generic",
-        action="store_true",
-        help="use the generic scraper"
-    )
+
+
 
     scratch_command.add_argument(
         "--add-to-auto",
@@ -181,11 +206,7 @@ def _parse_cmd():
         help="add successful scraped urls to an autolist"
     )
 
-    scratch_command.add_argument(
-        "urls",
-        nargs="+",
-        help="list of urls to scrape"
-    )
+
 
 
 
@@ -197,21 +218,10 @@ def _process_cmd_mode():
     modules: list = _gather_modules()
     cmd_running: bool = True
 
-    print("Hint: Enter -h as a command to get help text.")
 
     while cmd_running:
         cmd: str = input("cmd:")
         args: Namespace = _parse_cmd(cmd)
-
-        # exit.
-        if args.cmd == "exit":
-            cmd_running = False
-
-        # edit.
-        elif args.cmd == "edit-config":
-            
-
-            
 
         # autolist.
         elif args.cmd == "autolist":

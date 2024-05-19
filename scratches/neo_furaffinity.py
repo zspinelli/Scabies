@@ -68,7 +68,7 @@ class Furaffinity(Scraper):
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description="scabies for furaffinity")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
         modes = parser.add_subparsers(
             title="modes",
             dest="mode",
@@ -173,6 +173,9 @@ class Furaffinity(Scraper):
 
 
     def _process_search_mode(self):
+
+        search_url: str = path.join("search", )
+
         data: dict = {
             "page": 1,
             "order-by": "relevancy",
@@ -189,8 +192,21 @@ class Furaffinity(Scraper):
             "type-story": "1" if self.POST_TYPES.CODES.STORY in self._args.post_types else "0",
             "type-photo": "1" if self.POST_TYPES.CODES.PHOTO in self._args.post_types else "0",
             "type-poetry": "1" if self.POST_TYPES.CODES.POETRY in self._args.post_types else "0",
-            "mode": "extended",
+            "mode": "extended"
         }
+
+        while True:
+            for post_id in self._retrieve_paginated_gallery():
+                pass
+
+            post_ids: list = self._retrieve_paginated_gallery(search_url, data)
+
+            for result in results:
+                self._scrape_post()
+
+            # todo: break
+
+            data["page"] += 1
 
 
     def _process_user_mode(self):
@@ -208,22 +224,53 @@ class Furaffinity(Scraper):
 
             # gallery.
             if self.USER_PARTS.CODES.GALLERY in self._args.user_parts:
-                for post in self._retrieve_paginated_gallery(f"user/{name}/gallery"):
-                    print(post)
+                #for post in self._retrieve_paginated_gallery(f"user/{name}/gallery"):
+                    #print(post)
+
+                page_num: int = 1
+
+                while True:
+                    page_num += 1
 
             # scraps.
             if self.USER_PARTS.CODES.SCRAPS in self._args.user_parts:
                 #for thing in self._retrieve_paginated_gallery(f"user/{name}/scraps"):
                     #print(thing)
-                pass
+
+                page_num: int = 1
+
+                while True:
+                    page_num += 1
 
             # following.
             if self.USER_PARTS.CODES.FOLLOWING in self._args.user_parts:
-                pass
+                print(f"trying to get following from {name}")
+
+                following_list_filepath: str = path.join(self._destination_dir, "following.txt")
+                following_list = open(following_list_filepath, "w")
+
+                for name in self._retrieve_paginated_namebox(DOMAIN + f"/watchlist/by/{name}"):
+                    #for following in data:
+                        #print("found following: {}".format(following["username"]))
+                        #following_list.write(following["username"])
+                    pass
+
+                following_list.close()
 
             # followers.
             if self.USER_PARTS.CODES.FOLLOWERS in self._args.user_parts:
-                pass
+                print(f"trying to get followers from {name}")
+
+                following_list_filepath: str = path.join(self._destination_dir, "followers.txt")
+                following_list = open(following_list_filepath, "w")
+
+                for name in self._retrieve_paginated_namebox(DOMAIN + f"/watchlist/to/{name}"):
+                    #for following in data:
+                        ##print("found follower: {}".format(following["username"]))
+                        #following_list.write(following["username"])
+                    pass
+
+                following_list.close()
 
             # favorites.
             if self.USER_PARTS.CODES.FAVORITES in self._args.user_parts:
@@ -248,57 +295,24 @@ class Furaffinity(Scraper):
         pass
 
 
-    def _retrieve_paginated_namebox(self):
+    def _retrieve_paginated_gallery(self, namebox_url: str):
         pass
 
 
-    def _retrieve_paginated_gallery(self, part: str):
-        page_num: int = 1
-
+    def _retrieve_paginated_namebox(self, namebox_url: str):
         while True:
-            page_url: str = DOMAIN + f"/{part}/{page_num}"
-            page_response: Response = self._sess.get(page_url)
+            namebox_response: Response = self._sess.get(namebox_url)
+            namebox_soup: BeautifulSoup = BeautifulSoup(namebox_response.content, "html.parser")
 
-            page_soup: BeautifulSoup = BeautifulSoup(page_response.content, "html.parser")
-
-        return []
-
-        """
-        page_response: Response = self._sess.get(page_url)
-
-        print(f"page # {num}:", page_response.status_code)
-
-        # bad page.
-        if page_response.status_code != 200:
-            break
-
-        num += 1
-        """
+            names = namebox_soup.find()
 
 
-        """
-        page: str = self._sess.get(page_url).text
+    def _scrape_post(self):
+        pass
 
-        pos: int = 0
-        begin: str = "id=\"sid-"
-        end: str = "\""
 
-        while True:
-            first = page.find(begin, pos)
-
-            # nothing to do.
-            if first == -1:
-                break
-
-            first += len(begin)
-            last = page.find(end, first)
-            post_id = page[first:last]
-            pos = last + len(end)
-
-            yield post_id
-
-        num += 1
-        """
+    def _scrape_journal(self):
+        pass
 
 
 def run(args: list):

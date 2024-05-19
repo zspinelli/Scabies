@@ -84,7 +84,7 @@ class Artstation(Scraper):
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description="scabies for artstation")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
         modes = parser.add_subparsers(
             title="modes",
             dest="mode",
@@ -297,7 +297,7 @@ class Artstation(Scraper):
                 print(f"trying to get following from {name}")
 
                 following_list_filepath: str = path.join(self._destination_dir, "following.txt")
-                following_list = open(following_list_filepath, "a")
+                following_list = open(following_list_filepath, "w")
 
                 for data in self._retrieve_paginated(DOMAIN + f"/users/{name}/following.json"):
                     for following in data:
@@ -311,7 +311,7 @@ class Artstation(Scraper):
                 print(f"trying to get followers from {name}")
 
                 followers_list_filepath: str = path.join(self._destination_dir, "followers.txt")
-                followers_list = open(followers_list_filepath, "a")
+                followers_list = open(followers_list_filepath, "w")
 
                 for data in self._retrieve_paginated(DOMAIN + f"/users/{name}/followers.json"):
                     for follower in data:

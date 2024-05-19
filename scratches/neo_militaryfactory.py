@@ -1,6 +1,30 @@
 # scabies.
+from scabies.scraper import Scraper
+
+
+NAME: str = "military-factory"
+DOMAIN: str = "www.militaryfactory.com"
+
+
+class MilitaryFactory(Scraper):
+    def __init__(self):
+        super().__init__(NAME)
+
+
+    def run(self, args: list):
+        pass
+
+
+    def _parse_args(self, args: list):
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
+
+
+
+
+
+
+# scabies.
 from scabies import session, Strings
-from scratches.neo_generic import Generic
 
 # stdlib.
 from os import makedirs, path
@@ -11,8 +35,7 @@ from bs4 import BeautifulSoup, ResultSet
 from requests import Response
 
 
-NAME: str = "military-factory"
-DOMAIN: str = "www.militaryfactory.com"
+
 
 
 class MilitaryFactory(Generic):

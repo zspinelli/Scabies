@@ -4,7 +4,7 @@ from scabies.scraper import Scraper
 from scabies.switchplate import SwitchPlate
 
 # stdlib.
-from argparse import ArgumentParser
+from argparse import ArgumentParser, REMAINDER
 from os import path
 
 # scraping.
@@ -94,7 +94,7 @@ class Furaffinity(Scraper):
 
         search_mode.add_argument(
             "urls",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("search urls")
         )
 
@@ -110,7 +110,7 @@ class Furaffinity(Scraper):
 
         user_mode.add_argument(
             "names",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("user names")
         )
 
@@ -122,7 +122,7 @@ class Furaffinity(Scraper):
 
         post_mode.add_argument(
             "post",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("post ids")
         )
 

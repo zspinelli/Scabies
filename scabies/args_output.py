@@ -6,7 +6,7 @@ from os.path import dirname
 
 # scraping.
 import tomlkit
-from tomlkit import TOMLDocument
+from tomlkit import TOMLDocument, document, dumps
 
 # scabies.
 from scabies import Strings
@@ -26,12 +26,14 @@ def add_output_args(parser: ArgumentParser):
 
     output_exclusive.add_argument(
         "-os",
+        type=str,
         help="base output path (structured). builds an organized folder tree in the directory if applicable.",
         dest="output_structured"
     )
 
     output_exclusive.add_argument(
         "-ou",
+        type=str,
         help="base output path (unstructured). puts everything into the directory with minimal sorting.",
         dest="output_unstructured"
     )
@@ -113,13 +115,13 @@ def write_toml(allow_overwrite: bool, filepath: str, data: dict) -> bool:
     makedirs(dirname(filepath), exist_ok=True)
 
     toml_filepath: str = filepath
-    toml_data: TOMLDocument = tomlkit.document()
+    toml_data: TOMLDocument = document()
 
     for key in data:
         toml_data.add(key, data[key])
 
     with open(toml_filepath, "w", encoding="utf-8") as toml_record:
-        toml_record.write(tomlkit.dumps(toml_data))
+        toml_record.write(dumps(toml_data))
 
     print(f"wrote {toml_filepath}")
     return True

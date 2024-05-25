@@ -15,7 +15,7 @@ from urllib.parse import parse_qs, ParseResult, urlparse
 
 # stdlib.
 import random, string
-from argparse import ArgumentParser
+from argparse import ArgumentParser, REMAINDER
 from datetime import datetime
 from os import path
 
@@ -126,7 +126,7 @@ class Artstation(Scraper):
 
         user_mode.add_argument(
             "names",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("user names")
         )
 
@@ -139,7 +139,7 @@ class Artstation(Scraper):
 
         project_mode.add_argument(
             "projects",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("project ids")
         )
 
@@ -154,7 +154,7 @@ class Artstation(Scraper):
 
         challenge_mode.add_argument(
             "positional",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("challenge urls")
         )
 
@@ -166,7 +166,7 @@ class Artstation(Scraper):
 
         learning_mode.add_argument(
             "urls",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("learning urls")
         )
 

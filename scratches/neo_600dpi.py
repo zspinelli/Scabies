@@ -1,10 +1,10 @@
 # scabies.
 from scabies import args_output, Strings, args_time
-from scabies.scraper import Scraper
+from scabies.scraper import Scraper, ResolverBase
 
 # stdlib.
 import re
-from argparse import ArgumentParser
+from argparse import ArgumentParser, REMAINDER
 
 # scraping.
 from bs4 import BeautifulSoup, ResultSet
@@ -12,7 +12,7 @@ from requests import Response
 
 
 NAME: str = "600dpi"
-DOMAIN: str = "en.600dpi.net"
+DOMAIN: str = "https://en.publicdomainr.net/"
 
 
 class SixHundredDPI(Scraper):
@@ -59,7 +59,7 @@ class SixHundredDPI(Scraper):
 
         search_mode.add_argument(
             "terms",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("search terms")
         )
 
@@ -69,7 +69,7 @@ class SixHundredDPI(Scraper):
 
         art_mode.add_argument(
             "urls",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("art urls")
         )
 
@@ -121,6 +121,14 @@ class SixHundredDPI(Scraper):
                     break
 
             print(Strings.SEARCH_FINISHED.format(""))
+
+
+    def _scrape_art(self, page_url: str):
+        page_response: Response = self._sess.get(page_url)
+
+        page_soup: BeautifulSoup = BeautifulSoup(page_response.text, "html.parser")
+
+        art_link = page_soup.find("a", href=True)
 
 
 def run(args: list):

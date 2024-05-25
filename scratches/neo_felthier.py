@@ -20,7 +20,7 @@ from requests import Response
 from urllib.parse import ParseResult, urlparse
 
 # stdlib.
-from argparse import ArgumentParser
+from argparse import ArgumentParser, REMAINDER
 from datetime import datetime
 from os import path
 
@@ -126,7 +126,7 @@ class Felthier(Scraper):
 
         user_mode.add_argument(
             "names",
-            nargs="+",
+            nargs=REMAINDER,
             help=Strings.SEQ_SEP_SPACE.format("user names")
         )
 

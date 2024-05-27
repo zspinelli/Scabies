@@ -20,8 +20,8 @@ from datetime import datetime
 from os import path
 
 
-NAME: str = "artstation"
-DOMAIN: str = "https://www.artstation.com"
+_NAME: str = "artstation"
+_DOMAIN: str = "https://www.artstation.com"
 
 
 class Artstation(Scraper):
@@ -62,16 +62,13 @@ class Artstation(Scraper):
 
 
     def __init__(self):
-        super().__init__(NAME)
+        super().__init__(_NAME)
 
 
     def run(self, args: list):
         print(Strings.OP_STARTING.format(self.name()))
 
         self._parse_args(args)
-
-        # login if desired.
-        if self._args.need_login: self._login()
 
         # delegate to required mode.
         if self._args.mode == self.MODES.SEARCH:       self._process_search_mode()
@@ -80,11 +77,11 @@ class Artstation(Scraper):
         elif self._args.mode == self.MODES.CHALLENGE:  self._process_challenge_mode()
         elif self._args.mode == self.MODES.LEARNING:   self._process_learning_mode()
 
-        print(Strings.OP_FINISHED.format(NAME))
+        print(Strings.OP_FINISHED.format(_NAME))
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {_NAME}")
         modes = parser.add_subparsers(
             title="modes",
             dest="mode",
@@ -266,7 +263,7 @@ class Artstation(Scraper):
 
             # structured output wanted.
             if self._args.output_structured:
-                self._destination_dir = path.join(self._args.output_structured, NAME, name)
+                self._destination_dir = path.join(self._args.output_structured, _NAME, name)
 
             # need to read time resume file.
             if self._args.need_time_resume:
@@ -277,7 +274,7 @@ class Artstation(Scraper):
             if self.USER_PARTS.CODES.PORTFOLIO in self._args.user_parts:
                 print(f"trying to get portfolio from {name}")
 
-                for data in self._retrieve_paginated(DOMAIN + f"/users/{name}/projects.json"):
+                for data in self._retrieve_paginated(_DOMAIN + f"/users/{name}/projects.json"):
                     for project_info in data:
                         project: dict = self._retrieve_project(project_info["hash_id"])
                         self._scrape_project(project)
@@ -286,7 +283,7 @@ class Artstation(Scraper):
             if self.USER_PARTS.CODES.LIKES in self._args.user_parts:
                 print(f"trying to get likes from {name}")
 
-                for data in self._retrieve_paginated(DOMAIN + f"/users/{name}/likes.json"):
+                for data in self._retrieve_paginated(_DOMAIN + f"/users/{name}/likes.json"):
                     print(data)
                     #for like_info in data:
                         #project: dict = self._retrieve_project(like_info["hash_id"])
@@ -299,7 +296,7 @@ class Artstation(Scraper):
                 following_list_filepath: str = path.join(self._destination_dir, "following.txt")
                 following_list = open(following_list_filepath, "w")
 
-                for data in self._retrieve_paginated(DOMAIN + f"/users/{name}/following.json"):
+                for data in self._retrieve_paginated(_DOMAIN + f"/users/{name}/following.json"):
                     for following in data:
                         print("found following: {}".format(following["username"]))
                         following_list.write(following["username"])
@@ -313,7 +310,7 @@ class Artstation(Scraper):
                 followers_list_filepath: str = path.join(self._destination_dir, "followers.txt")
                 followers_list = open(followers_list_filepath, "w")
 
-                for data in self._retrieve_paginated(DOMAIN + f"/users/{name}/followers.json"):
+                for data in self._retrieve_paginated(_DOMAIN + f"/users/{name}/followers.json"):
                     for follower in data:
                         print("found follower: {}".format(follower["username"]))
                         followers_list.write(follower["username"])
@@ -324,7 +321,7 @@ class Artstation(Scraper):
             if self.USER_PARTS.CODES.CHALLENGES in self._args.user_parts:
                 print(f"trying to get challenges from {name}")
 
-                challenges_url: str = DOMAIN + f"/contests/_/challenges/{name}.json"
+                challenges_url: str = _DOMAIN + f"/contests/_/challenges/{name}.json"
 
             # learning wanted.
             if self.USER_PARTS.CODES.LEARNING in self._args.user_parts:
@@ -332,7 +329,7 @@ class Artstation(Scraper):
                 if self._ensure_login():
                     print(f"trying to get learning from {name}")
 
-                    user_url: str = f"{DOMAIN}/users/{name}.json"
+                    user_url: str = f"{_DOMAIN}/users/{name}.json"
                     user_response: Response = self._sess.get(user_url)
                     user_json = user_response.json()
 
@@ -341,7 +338,7 @@ class Artstation(Scraper):
                         "user_id": user_json["id"]
                     }
 
-                    learning_url: str = DOMAIN + f"/api/v2/learning/courses/instructor_courses_by_user.json"
+                    learning_url: str = _DOMAIN + f"/api/v2/learning/courses/instructor_courses_by_user.json"
 
                     for course in self._retrieve_paginated(learning_url, params=params):
                         self._scrape_learning(course)
@@ -377,18 +374,18 @@ class Artstation(Scraper):
                 courses: list = []
 
                 # url is a course page.
-                if url.startswith(f"{DOMAIN}/learning/courses"):
+                if url.startswith(f"{_DOMAIN}/learning/courses"):
                     course_response: Response = self._sess.get(url)
 
                 # url is a result gallery.
-                elif url.startswith(f"{DOMAIN}/learning"):
+                elif url.startswith(f"{_DOMAIN}/learning"):
                     params: dict = {
                         "per_page": 50,
                         "sort": "latest"
                     }
 
                     courses: list = self._retrieve_paginated(
-                        DOMAIN + "/api/v2/learning/series/search.json",
+                        _DOMAIN + "/api/v2/learning/series/search.json",
                         url,
                         params,
                         True
@@ -539,7 +536,7 @@ class Artstation(Scraper):
         hash_id: str = data["hash_id"]
         slug: str = data["slug"]
 
-        course_url: str = f"{DOMAIN}/learning/{hash_id}/{slug}/"
+        course_url: str = f"{_DOMAIN}/learning/{hash_id}/{slug}/"
         course_response: Response = self._sess.get(course_url)
 
         print(course_response.content)
@@ -560,12 +557,12 @@ class Artstation(Scraper):
 
         headers: dict = {
             "Accept": "application/json, text/plain, */*",
-            "Origin": DOMAIN
+            "Origin": _DOMAIN
         }
 
         # header needs referer.
         if ref: headers.update({"Referer": ref})
-        else:   headers.update({"Referer": f"{DOMAIN}/"})
+        else:   headers.update({"Referer": f"{_DOMAIN}/"})
 
         # NOTE: pagination must always start at page 1.
         params.update({"page": 1})
@@ -613,12 +610,12 @@ class Artstation(Scraper):
 
     def _get_csrf_token(self):
         token_response: Response = self._sess.post(
-            DOMAIN + "/api/v2/csrf_protection/token.json",
+            _DOMAIN + "/api/v2/csrf_protection/token.json",
             json={},
             headers={
                 "Accept": "*/*",
-                "Origin": DOMAIN,
-                "Referer": DOMAIN + "/",
+                "Origin": _DOMAIN,
+                "Referer": _DOMAIN + "/",
             }
         )
         token: dict = token_response.json()
@@ -627,13 +624,13 @@ class Artstation(Scraper):
 
 
     def _retrieve_project(self, hash_id: str) -> dict:
-        project_url: str = DOMAIN + "/projects/" + hash_id + ".json"
+        project_url: str = _DOMAIN + "/projects/" + hash_id + ".json"
         project_response: Response = self._sess.get(project_url)
         project: dict = project_response.json()
 
         # structured output wanted.
         if self._args.output_structured:
-            self._destination_dir = path.join(self._args.output_structured, NAME, project["user"]["username"])
+            self._destination_dir = path.join(self._args.output_structured, _NAME, project["user"]["username"])
 
         return project
 

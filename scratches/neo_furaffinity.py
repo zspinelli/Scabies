@@ -12,8 +12,8 @@ from bs4 import BeautifulSoup
 from requests import Response
 
 
-NAME: str = "furaffinity"
-DOMAIN: str = "https://www.furaffinity.net"
+_NAME: str = "furaffinity"
+_DOMAIN: str = "https://www.furaffinity.net"
 
 
 class Furaffinity(Scraper):
@@ -51,11 +51,11 @@ class Furaffinity(Scraper):
 
 
     def __init__(self):
-        super().__init__(NAME)
+        super().__init__(_NAME)
 
 
     def run(self, args: list):
-        print(Strings.OP_STARTING.format(NAME))
+        print(Strings.OP_STARTING.format(_NAME))
 
         self._parse_args(args)
 
@@ -64,11 +64,11 @@ class Furaffinity(Scraper):
         elif self._args.mode == self.MODES.USER: self._process_user_mode()
         elif self._args.mode == self.MODES.POST: self._process_post_mode()
 
-        print(Strings.OP_FINISHED.format(NAME))
+        print(Strings.OP_FINISHED.format(_NAME))
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {_NAME}")
         modes = parser.add_subparsers(
             title="modes",
             dest="mode",
@@ -215,7 +215,7 @@ class Furaffinity(Scraper):
 
             # structured output wanted.
             if self._args.output_structured:
-                self._destination_dir = path.join(self._args.output_structured, NAME, name)
+                self._destination_dir = path.join(self._args.output_structured, _NAME, name)
 
             # need to read time resume file.
             if self._args.need_time_resume:
@@ -249,7 +249,7 @@ class Furaffinity(Scraper):
                 following_list_filepath: str = path.join(self._destination_dir, "following.txt")
                 following_list = open(following_list_filepath, "w")
 
-                for name in self._retrieve_paginated_namebox(DOMAIN + f"/watchlist/by/{name}"):
+                for name in self._retrieve_paginated_namebox(_DOMAIN + f"/watchlist/by/{name}"):
                     #for following in data:
                         #print("found following: {}".format(following["username"]))
                         #following_list.write(following["username"])
@@ -264,7 +264,7 @@ class Furaffinity(Scraper):
                 following_list_filepath: str = path.join(self._destination_dir, "followers.txt")
                 following_list = open(following_list_filepath, "w")
 
-                for name in self._retrieve_paginated_namebox(DOMAIN + f"/watchlist/to/{name}"):
+                for name in self._retrieve_paginated_namebox(_DOMAIN + f"/watchlist/to/{name}"):
                     #for following in data:
                         ##print("found follower: {}".format(following["username"]))
                         #following_list.write(following["username"])

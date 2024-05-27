@@ -6,7 +6,7 @@ from urllib.parse import urlparse, ParseResult
 
 # scabies.
 from scabies import args_cookies, args_output, args_time, Strings
-from scabies.scraper import Scraper
+from scabies.scraper import Scraper, ScraperInfo
 from scabies.switchplate import SwitchPlate
 
 # scraping.
@@ -17,11 +17,22 @@ NAME: str = "kemono"
 DOMAIN: str = "https://kemono.su"
 
 
+scraper_info: ScraperInfo = ScraperInfo(
+    NAME,
+    DOMAIN,
+    {
+        "creator": r"https://kemono.su/fanbox/user/3316400",
+        "post": r"https://kemono.su/fanbox/user/3316400/post/7855958"
+    }
+)
+
+
 class Kemono(Scraper):
     class MODES:
         FAVS: str = "favorites"
         CREATOR: str = "creator"
         POST: str = "post"
+        META: str = "meta"
 
     CONTENT_TYPES: SwitchPlate({
         "IMAGE": "I",
@@ -44,6 +55,7 @@ class Kemono(Scraper):
         if self._args.mode == self.MODES.FAVS:      self._process_favorites_mode()
         elif self._args.mode == self.MODES.CREATOR: self._process_creator_mode()
         elif self._args.mode == self.MODES.POST:    self._process_post_mode()
+        elif self._args.mode == self.MODES.META:    self._process_meta_mode()
 
         print(Strings.OP_FINISHED.format(NAME))
 
@@ -257,6 +269,10 @@ class Kemono(Scraper):
             # save toml format.
             if self._args.toml_meta:
                 args_output.write_toml(self._args.allow_overwrite_meta, record_filepath, meta)
+
+
+    def _process_meta_mode(self):
+        pass
 
 
     def _parse_path_parts(self, url: str) -> list:

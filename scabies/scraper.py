@@ -1,39 +1,45 @@
 # stdlib.
-from abc import ABC
 from argparse import Namespace
+from copy import deepcopy
 from datetime import datetime
-from os import path, makedirs
+from os import path
 from urllib.parse import urlparse, ParseResult
 
 # scraping.
-from bs4 import ResultSet, BeautifulSoup
+from bs4 import BeautifulSoup
 from requests import Session, Response
 
 # scabies.
 from scabies import session, Strings
 
 
-NAME: str = "generic"
-DOMAIN: str = "*"
+class ScraperInfo:
+    def __init__(self, name: str, domain: str, patterns: dict):
+        self._name: str = name
+        self._domain: str = domain
+        self._patterns: dict = patterns
 
 
-class ResolverBase(ABC):
-    __doc__ = "utility for the umbrella cli to resolve how to automate detected scrapers."
-
-    def __init__(self, patterns: dict):
-        pass
+    def name(self) -> str:      return self._name
+    def domain(self) -> str:   return self._domain
 
 
-    def match(self, string: str):
+    def match(self):
         pass
 
     match.__doc__ = "try to match the string with one of the patterns."
 
 
+scraper_info: ScraperInfo = ScraperInfo(
+    "generic",
+    "*",
+    []
+)
+
+
 class Scraper:
     __doc__ = "base class for all scrapers. features name(), run(), and _parse_args() to " \
         "assist automation by the umbrella cli."
-
 
     def __init__(self, name: str, interval: int = 0):
         self._name: str = name
@@ -146,7 +152,7 @@ class Scraper:
 
 
 def run(args: list):
-    scraper: Scraper = Scraper(NAME)
+    scraper: Scraper = Scraper(scraper_info.name())
     scraper.run(args)
 
 

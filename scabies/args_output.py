@@ -5,7 +5,6 @@ from os import makedirs, path
 from os.path import dirname
 
 # scraping.
-import tomlkit
 from tomlkit import TOMLDocument, document, dumps
 
 # scabies.

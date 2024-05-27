@@ -1,9 +1,5 @@
 """
 zspinelli:
-Eventually I want to add a post mode to this that will receive either an art url or html url
-and then scrape that and search for a matching opposite to scrape, meaning it would get both regardless
-of which it is given so that users don't need to be discriminant to get desired behavior.
-
 There is a problem either with the tor connection that needs resolved. After a while
 the connection seems to drop. I don't know if it's the result of the server failing to respond or tor
 hanging up. This problem becomes more apparent when scraping larger galleries.
@@ -11,13 +7,12 @@ hanging up. This problem becomes more apparent when scraping larger galleries.
 
 # scabies.
 from scabies import args_output, Strings, args_time, tor
-from scabies.scraper import Scraper
+from scabies.scraper import Scraper, ScraperInfo
 from scabies.switchplate import SwitchPlate
 
 # scraping.
 from bs4 import BeautifulSoup, ResultSet
 from requests import Response
-from urllib.parse import ParseResult, urlparse
 
 # stdlib.
 from argparse import ArgumentParser, REMAINDER
@@ -25,14 +20,23 @@ from datetime import datetime
 from os import path
 
 
-NAME: str = "felthier"
-DOMAIN: str = "g6jy5jkx466lrqojcngbnksugrcfxsl562bzuikrka5rv7srgguqbjid.onion/fa"
+_NAME: str = "felthier"
+_DOMAIN: str = "g6jy5jkx466lrqojcngbnksugrcfxsl562bzuikrka5rv7srgguqbjid.onion/fa"
+
+
+scraper_info: ScraperInfo = ScraperInfo(
+    _NAME,
+    _DOMAIN,
+    {
+        "user": r""
+    }
+)
 
 
 class Felthier(Scraper):
     class MODES:
         USER: str = "user"
-        POST: str = "post"
+        META: str = "meta"
 
     POST_TYPES: SwitchPlate = SwitchPlate({
         "UNKOWN": "U",
@@ -75,7 +79,7 @@ class Felthier(Scraper):
 
 
     def run(self, args: list):
-        print(Strings.OP_STARTING.format(NAME))
+        print(Strings.OP_STARTING.format(_NAME))
 
         self._sess.proxies = {
             "http": "socks5h://localhost:9150",
@@ -87,14 +91,14 @@ class Felthier(Scraper):
         tor.start()
 
         # delegate to required mode.
-        if self._args.mode == self.MODES.USER:    self._process_user_mode()
-        elif self._args.mode == self.MODES.POST:  self._process_post_mode()
+        if self._args.mode == self.MODES.USER:      self._process_user_mode()
+        elif self._args.mode == self.MODES.META:    self._process_meta_mode()
 
-        print(Strings.OP_FINISHED.format(NAME))
+        print(Strings.OP_FINISHED.format(_NAME))
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {_NAME}")
         modes = parser.add_subparsers(
             title="modes",
             dest="mode",
@@ -132,22 +136,12 @@ class Felthier(Scraper):
 
         # ---- post mode. ---- #
 
-        """
-        post_mode = modes.add_parser(self.MODES.POST)
-        
-        self._add_post_parts(user_mode)
-
-        post_mode.add_argument(
-            "posts",
-            nargs="+",
-            help=strings.SEQ_SEP_SPACE.format("post slugs")
-        )
-        """
+        meta_mode = modes.add_parser(self.MODES.META)
 
         # ---- parse ---- #
 
         self._args = parser.parse_args()
-        # print(f"input: {_argv}")
+        # print(f"input: {self._args}")
 
         # ---- validate. ----  #
 
@@ -176,7 +170,7 @@ class Felthier(Scraper):
 
             # structured output wanted.
             if self._args.output_structured:
-                self._destination_dir = path.join(self._args.output_structured, NAME, name)
+                self._destination_dir = path.join(self._args.output_structured, _NAME, name)
 
             # need to read time resume file.
             if self._args.need_time_resume:
@@ -189,7 +183,7 @@ class Felthier(Scraper):
                 # ---- get subdir page items. ---- #
 
                 curr_subdir: str = subdirs.pop(0)
-                subdir_url: str = DOMAIN + f"/{curr_subdir}"
+                subdir_url: str = _DOMAIN + f"/{curr_subdir}"
 
                 print("scraping subdir: " + curr_subdir)
 
@@ -258,14 +252,8 @@ class Felthier(Scraper):
             print(Strings.USER_FINISHED.format(name))
 
 
-    def _process_post_mode(self):
-        for url in self._args.posts:
-            # if url is not html, try html version for metadata.
-            if not url.endswith(".html") and self._args.need_metadata:
-                parsed_url: ParseResult = urlparse(url)
-                url_parts: list = parsed_url.path.split("/")
-
-                print(url_parts)
+    def _process_meta_mode(self):
+        pass
 
 
     def _scrape_data(self, info: PostInfo):

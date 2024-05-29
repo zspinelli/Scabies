@@ -7,7 +7,7 @@ hanging up. This problem becomes more apparent when scraping larger galleries.
 
 # scabies.
 from scabies import args_output, Strings, args_time, tor
-from scabies.scraper import Scraper, ScraperInfo
+from scabies.scraper import Scraper
 from scabies.switchplate import SwitchPlate
 
 # scraping.
@@ -15,22 +15,30 @@ from bs4 import BeautifulSoup, ResultSet
 from requests import Response
 
 # stdlib.
+import string
 from argparse import ArgumentParser, REMAINDER
 from datetime import datetime
 from os import path
 
 
-_NAME: str = "felthier"
-_DOMAIN: str = "g6jy5jkx466lrqojcngbnksugrcfxsl562bzuikrka5rv7srgguqbjid.onion/fa"
+class _PostInfo:
+    def __init__(self, author: str, anchor, dest_dir: str):
+        self.author: str = author
+        self.link: str = anchor["href"]
+        self.title: str = self._sanitize_name(anchor.text).rstrip(".")
+        self.filepath_out: str = path.join(dest_dir, self.title)
+        self.ext: str = path.splitext(anchor["href"])[1]
+        self.date: datetime = datetime.strptime(anchor[2].text[:16], args_time.TIME_FORMAT)
 
+    def _sanitize_name(self, name: str) -> str:
+        new_name = name
+        bad_chars = {'\x03': "%03"}
 
-scraper_info: ScraperInfo = ScraperInfo(
-    _NAME,
-    _DOMAIN,
-    {
-        "user": r""
-    }
-)
+        for c in name:
+            if c in bad_chars:
+                new_name = new_name.replace(c, bad_chars[c])
+
+        return new_name
 
 
 class Felthier(Scraper):
@@ -53,52 +61,12 @@ class Felthier(Scraper):
     }, default="MDsDt")
 
 
-    class PostInfo:
-        def __init__(self, author: str, anchor, dest_dir: str):
-            self.author: str = author
-            self.link: str = anchor["href"]
-            self.title: str = self._sanitize_name(anchor.text).rstrip(".")
-            self.filepath_out: str = path.join(dest_dir, self.title)
-            self.ext: str = path.splitext(anchor["href"])[1]
-            self.date: datetime = datetime.strptime(anchor[2].text[:16], args_time.TIME_FORMAT)
-
-
-        def _sanitize_name(self, name: str) -> str:
-            new_name = name
-            bad_chars = {'\x03': "%03"}
-
-            for c in name:
-                if c in bad_chars:
-                    new_name = new_name.replace(c, bad_chars[c])
-
-            return new_name
-
-
     def __init__(self):
-        super().__init__("felthier")
-
-
-    def run(self, args: list):
-        print(Strings.OP_STARTING.format(_NAME))
-
-        self._sess.proxies = {
-            "http": "socks5h://localhost:9150",
-            "https": "socks5h://localhost:9150"
-        }
-
-        self._parse_args(args)
-
-        tor.start()
-
-        # delegate to required mode.
-        if self._args.mode == self.MODES.USER:      self._process_user_mode()
-        elif self._args.mode == self.MODES.META:    self._process_meta_mode()
-
-        print(Strings.OP_FINISHED.format(_NAME))
+        super().__init__("felthier", "g6jy5jkx466lrqojcngbnksugrcfxsl562bzuikrka5rv7srgguqbjid.onion/fa")
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description=f"scabies for {_NAME}")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {self._name}")
         modes = parser.add_subparsers(
             title="modes",
             dest="mode",
@@ -134,7 +102,7 @@ class Felthier(Scraper):
             help=Strings.SEQ_SEP_SPACE.format("user names")
         )
 
-        # ---- post mode. ---- #
+        # ---- meta mode. ---- #
 
         meta_mode = modes.add_parser(self.MODES.META)
 
@@ -155,6 +123,25 @@ class Felthier(Scraper):
         args_time.validate_time_selection_args(self._args)
 
 
+    def run(self, args: list):
+        print(Strings.OP_STARTING.format(self._name))
+
+        self._sess.proxies = {
+            "http": "socks5h://localhost:9150",
+            "https": "socks5h://localhost:9150"
+        }
+
+        self._parse_args(args)
+
+        tor.start()
+
+        # delegate to required mode.
+        if self._args.mode == self.MODES.USER:      self._process_user_mode()
+        elif self._args.mode == self.MODES.META:    self._process_meta_mode()
+
+        print(Strings.OP_FINISHED.format(self._name))
+
+
     def _add_post_parts(self, parser: ArgumentParser):
         parser.add_argument(
             "-pp",
@@ -170,7 +157,7 @@ class Felthier(Scraper):
 
             # structured output wanted.
             if self._args.output_structured:
-                self._destination_dir = path.join(self._args.output_structured, _NAME, name)
+                self._destination_dir = path.join(self._args.output_structured, self._name, name)
 
             # need to read time resume file.
             if self._args.need_time_resume:
@@ -183,7 +170,7 @@ class Felthier(Scraper):
                 # ---- get subdir page items. ---- #
 
                 curr_subdir: str = subdirs.pop(0)
-                subdir_url: str = _DOMAIN + f"/{curr_subdir}"
+                subdir_url: str = self._domain + f"/{curr_subdir}"
 
                 print("scraping subdir: " + curr_subdir)
 
@@ -200,7 +187,7 @@ class Felthier(Scraper):
 
                     # ---- create info package. ---- #
 
-                    info: Felthier.PostInfo = Felthier.PostInfo(name, anchor, self._destination_dir)
+                    info: _PostInfo = _PostInfo(name, anchor, self._destination_dir)
 
                     # ---- determine continuity. ---- #
 
@@ -253,10 +240,11 @@ class Felthier(Scraper):
 
 
     def _process_meta_mode(self):
-        pass
+        _MAX_NAME_LENGTH: int = 51
+        _ALLOWED_CHARS: str = string.ascii_lowercase + string.digits + "-"
 
 
-    def _scrape_data(self, info: PostInfo):
+    def _scrape_data(self, info: _PostInfo):
         # don't overwrite existing files.
         if not self._args.allow_overwrite and path.exists(info.filepath_out):
             print(Strings.SKIP.format(Strings.SKIP_NO_CLOBBER))
@@ -266,7 +254,7 @@ class Felthier(Scraper):
         args_output.write_binary(info.filepath_out + info.ext, payload.content)
 
 
-    def _save_metadata(self, desc: str, info: PostInfo):
+    def _save_metadata(self, desc: str, info: _PostInfo):
         meta: dict = {
             "author": info.author,
             "description": desc

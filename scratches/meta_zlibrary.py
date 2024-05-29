@@ -4,7 +4,8 @@ from scabies.scraper import Scraper
 
 # stdlib.
 from argparse import ArgumentParser
-from multiprocessing import cpu_count, Pool
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import Lock, cpu_count
 from os import path
 
 # scraping.
@@ -12,19 +13,25 @@ from bs4 import BeautifulSoup
 from requests import Response
 
 
-NAME: str = "zlibrary"
-DOMAIN: str = "https://singlelogin.re"
+class _Slot:
+    def __init__(self, num: int, start_group: str, start_hash: str):
+        self.num: int = num
+        self.group: str = start_group
+        self.next_group: str = ""
+        self.hash: str = start_hash
+        self.done: bool = False
 
 
 class ZLibraryMeta(Scraper):
     _GROUP_LENGTH: int = 7
     _HASH_LENGTH: int = 6
 
-
     def __init__(self):
-        super().__init__(NAME)
+        super().__init__("zlibrary-meta", "https://singlelogin.re")
 
-        self._thread_pool: Pool = Pool(cpu_count())
+        self._next_group: str = "0" * 7
+        self._next_group_lock: Lock = Lock()
+        self._slots: list = []
 
 
     def run(self, args: list):
@@ -32,32 +39,35 @@ class ZLibraryMeta(Scraper):
 
         self._parse_args(args)
 
+        # ---- initialize slots. ---- #
 
+        for i in range(cpu_count()):
+            self._slots.append(_Slot(i, self._next_group, "0" * 6))
+            self._next_group = self._increment_ordinator_string(self._next_group)
 
-        print(Strings.OP_FINISHED.format(NAME))
+        # need to resume previous operation.
+        if self._args.need_state_resume:
+            # todo: load savestate.
+            pass
 
+        # ---- process. ---- #
 
+        with ProcessPoolExecutor() as pool:
+            while True:
+                for slot in self._slots:
+                    pool.submit(self._group_hashes_task, slot)
 
+                break
 
-
-
-        group: str = "0" * 7
-
-        while group != "z" * 7:
-            print(group)
-            thread_pool.apply_async(self._async_task, group)
-
-            group = self._increment_ordinator_string(group)
-
-
+        print(Strings.OP_FINISHED.format(self._name))
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {self._name}")
 
         parser.add_argument(
             "-o",
-            help="output path. writes scrape result log in the given directory.",
+            help="output path. writes scrape result logs in the given directory.",
             dest="output"
         )
 
@@ -74,16 +84,29 @@ class ZLibraryMeta(Scraper):
         #print(f"input: {self._args}")
 
 
-    def _async_task(self, group: str, hash: str= "0" * 6):
+    def _group_hashes_task(self, slot: _Slot):
+        hash: str = start_hash
+
+        while hash != "z" * 6:
+            pass
+
+        print("started testing group:", self._next_group)
+
+        self._slots[]
+
+
+
+
+    def _async_task(self, group: str, hash_slot: int, hash: str= "0" * 6):
         result_log = None
-        hash: str = hash
+
 
         while hash != "z" * 6:
             group_hash: str = f"{group}/{hash}"
 
             print(f"testing: {group_hash} ... ", end="")
 
-            probe_url: str = f"{DOMAIN}/book/{group_hash}"
+            probe_url: str = f"{self._domain}/book/{group_hash}"
             probe_response: Response = self._sess.get(probe_url)
 
             page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")

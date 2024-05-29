@@ -6,10 +6,6 @@ from scabies import Strings
 from scabies.scraper import Scraper
 
 
-NAME: str = "reddit"
-DOMAIN: str = "https://www.reddit.com"
-
-
 class Reddit(Scraper):
     class MODES:
         SUB: str = "sub"
@@ -19,11 +15,15 @@ class Reddit(Scraper):
 
 
     def __init__(self):
-        super().__init__(NAME)
+        super().__init__("reddit", "https://www.reddit.com")
+
+
+    def _parse_args(self, args: list):
+        parser: ArgumentParser
 
 
     def run(self, args: list):
-        print(Strings.OP_STARTING.format(NAME))
+        print(Strings.OP_STARTING.format(self._name))
 
         self._parse_args(args)
 
@@ -33,11 +33,7 @@ class Reddit(Scraper):
         elif self._args.mode == self.MODES.USER:    self._process_user_mode()
         elif self._args.mode == self.MODES.POST:    self._process_post_mode()
 
-        print(Strings.OP_FINISHED.format(NAME))
-
-
-    def _parse_args(self, args: list):
-        parser: ArgumentParser
+        print(Strings.OP_FINISHED.format(self._name))
 
 
     def _process_sub_mode(self):

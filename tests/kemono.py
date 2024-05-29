@@ -1,5 +1,5 @@
 # scabies.
-from scratches.neo_kemono import Kemono
+from scratches.kemono import Kemono
 
 
 creator

@@ -1,6 +1,5 @@
 # stdlib.
 from argparse import Namespace
-from copy import deepcopy
 from datetime import datetime
 from os import path
 from urllib.parse import urlparse, ParseResult
@@ -13,36 +12,18 @@ from requests import Session, Response
 from scabies import session, Strings
 
 
-class ScraperInfo:
-    def __init__(self, name: str, domain: str, patterns: dict):
-        self._name: str = name
-        self._domain: str = domain
-        self._patterns: dict = patterns
-
-
-    def name(self) -> str:      return self._name
-    def domain(self) -> str:   return self._domain
-
-
-    def match(self):
-        pass
-
-    match.__doc__ = "try to match the string with one of the patterns."
-
-
-scraper_info: ScraperInfo = ScraperInfo(
-    "generic",
-    "*",
-    []
-)
-
-
 class Scraper:
     __doc__ = "base class for all scrapers. features name(), run(), and _parse_args() to " \
         "assist automation by the umbrella cli."
 
-    def __init__(self, name: str, interval: int = 0):
+    def __init__(
+        self,
+        name: str = "generic",
+        domain: str = "",
+        interval: int = 0
+    ):
         self._name: str = name
+        self._domain: str = domain
         self._args: Namespace = Namespace()
         self._sess: Session = session.new(interval)
         self._destination_dir: str = ""
@@ -54,6 +35,38 @@ class Scraper:
         return self._name
 
     name.__doc__ = "return the name of the scraper as str"
+
+
+    def domain(self) -> str:
+        return self._domain
+
+    domain.__doc__ = "return the domain of the scraper as str"
+
+
+    def _parse_args(self, args: list):
+        args = args[1:]
+
+        parsed: Namespace = Namespace()
+
+        # found help.
+        if "-h" in args or "--help" in args:
+            print(
+                "usage: scraper.py [-h] [-o OUTPUT_STRUCTURED] [urls URL1 URL2 ...]\n\n"
+                "positional arguments:\n"
+                "  urls\t\tspace-separated sequence of art urls\n\n"
+                "options:\n"
+                "  -h, --help\t\tshow this help message and exit"
+            )
+
+        # found output.
+        elif args.pop(0) == "-o":
+            setattr(parsed, "output", args.pop(0))
+            setattr(parsed, "urls", args)
+
+        self._args = parsed
+        print(f"input: {self._args}")
+
+    _parse_args.__doc__ = "parse the parameters: list[str] passed from self.run()"
 
 
     def run(self, args: list):
@@ -125,34 +138,8 @@ class Scraper:
     run.__doc__ = "run the scraper on parameters: list[str] passed to args"
 
 
-    def _parse_args(self, args: list):
-        args = args[1:]
-
-        parsed: Namespace = Namespace()
-
-        # found help.
-        if "-h" in args or "--help" in args:
-            print(
-                "usage: scraper.py [-h] [-o OUTPUT_STRUCTURED] [urls URL1 URL2 ...]\n\n"
-                "positional arguments:\n"
-                "  urls\t\tspace-separated sequence of art urls\n\n"
-                "options:\n"
-                "  -h, --help\t\tshow this help message and exit"
-            )
-
-        # found output.
-        elif args.pop(0) == "-o":
-            setattr(parsed, "output", args.pop(0))
-            setattr(parsed, "urls", args)
-
-        self._args = parsed
-        print(f"input: {self._args}")
-
-    _parse_args.__doc__ = "parse the parameters: list[str] passed from self.run()"
-
-
 def run(args: list):
-    scraper: Scraper = Scraper(scraper_info.name())
+    scraper: Scraper = Scraper()
     scraper.run(args)
 
 

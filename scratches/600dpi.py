@@ -1,6 +1,6 @@
 # scabies.
 from scabies import args_output, Strings, args_time
-from scabies.scraper import Scraper, ResolverBase
+from scabies.scraper import Scraper
 
 # stdlib.
 import re
@@ -11,10 +11,6 @@ from bs4 import BeautifulSoup, ResultSet
 from requests import Response
 
 
-NAME: str = "600dpi"
-DOMAIN: str = "https://en.publicdomainr.net/"
-
-
 class SixHundredDPI(Scraper):
     class MODES:
         SEARCH: str = "search"
@@ -22,23 +18,11 @@ class SixHundredDPI(Scraper):
 
 
     def __init__(self):
-        super().__init__("600dpi")
-
-
-    def run(self, args: list):
-        print(Strings.OP_STARTING.format(NAME))
-
-        self._parse_args(args)
-
-        # delegate to required mode.
-        if self._args.mode == self.MODES.SEARCH:    self._process_search_mode()
-        elif self._args.mode == self.MODES.ART:     self._process_art_mode()
-
-        print(Strings.OP_FINISHED.format(NAME))
+        super().__init__("600dpi", "https://en.publicdomainr.net")
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description=f"scabies for {NAME}")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {self._name}")
         modes = parser.add_subparsers(
             title="modes",
             dest="mode",
@@ -85,6 +69,21 @@ class SixHundredDPI(Scraper):
         args_output.validate_metadata_args(self._args)
 
         args_time.validate_time_selection_args(self._args)
+
+
+    def run(self, args: list):
+        print(Strings.OP_STARTING.format(self._name))
+
+        self._parse_args(args)
+
+        # delegate to required mode.
+        if self._args.mode == self.MODES.SEARCH:    self._process_search_mode()
+        elif self._args.mode == self.MODES.ART:     self._process_art_mode()
+
+        print(Strings.OP_FINISHED.format(self._name))
+
+
+
 
 
     def _process_art_mode(self):

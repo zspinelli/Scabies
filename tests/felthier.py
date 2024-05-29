@@ -1,5 +1,5 @@
 # scabies.
-from scratches.neo_felthier import Felthier
+from scratches.felthier import Felthier
 
 
 user_name: str = "commissionsbyj"

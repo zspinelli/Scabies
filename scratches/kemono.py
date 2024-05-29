@@ -6,25 +6,11 @@ from urllib.parse import urlparse, ParseResult
 
 # scabies.
 from scabies import args_cookies, args_output, args_time, Strings
-from scabies.scraper import Scraper, ScraperInfo
+from scabies.scraper import Scraper
 from scabies.switchplate import SwitchPlate
 
 # scraping.
 from requests import Response
-
-
-NAME: str = "kemono"
-DOMAIN: str = "https://kemono.su"
-
-
-scraper_info: ScraperInfo = ScraperInfo(
-    NAME,
-    DOMAIN,
-    {
-        "creator": r"https://kemono.su/fanbox/user/3316400",
-        "post": r"https://kemono.su/fanbox/user/3316400/post/7855958"
-    }
-)
 
 
 class Kemono(Scraper):
@@ -41,23 +27,9 @@ class Kemono(Scraper):
 
 
     def __init__(self):
-        super().__init__(NAME, 0)
+        super().__init__("kemono", "https://kemono.su", 0)
 
         self._sess.headers.update({"Accept-Encoding": "identity"})
-
-
-    def run(self, args: list):
-        print(Strings.OP_STARTING.format(NAME))
-
-        self._parse_args(args)
-
-        # delegate to required mode.
-        if self._args.mode == self.MODES.FAVS:      self._process_favorites_mode()
-        elif self._args.mode == self.MODES.CREATOR: self._process_creator_mode()
-        elif self._args.mode == self.MODES.POST:    self._process_post_mode()
-        elif self._args.mode == self.MODES.META:    self._process_meta_mode()
-
-        print(Strings.OP_FINISHED.format(NAME))
 
 
     def _parse_args(self, args: list):
@@ -120,13 +92,27 @@ class Kemono(Scraper):
         args_time.validate_time_selection_args(self._args)
 
 
+    def run(self, args: list):
+        print(Strings.OP_STARTING.format(self._name))
+
+        self._parse_args(args)
+
+        # delegate to required mode.
+        if self._args.mode == self.MODES.FAVS:      self._process_favorites_mode()
+        elif self._args.mode == self.MODES.CREATOR: self._process_creator_mode()
+        elif self._args.mode == self.MODES.POST:    self._process_post_mode()
+        elif self._args.mode == self.MODES.META:    self._process_meta_mode()
+
+        print(Strings.OP_FINISHED.format(self._name))
+
+
     def _process_favorites_mode(self):
-        favorites_url: str = f"{DOMAIN}/api/v1/account/favorites"
+        favorites_url: str = f"{self._domain}/api/v1/account/favorites"
         favorites_response: Response = self._sess.get(favorites_url)
 
         # not logged in.
         if favorites_response.status_code == 401:
-            print(Strings.LOGIN_REQUIRED.format(NAME))
+            print(Strings.LOGIN_REQUIRED.format(self._name))
 
         # got favorites back.
         elif favorites_response.status_code == 400:
@@ -151,7 +137,7 @@ class Kemono(Scraper):
             params: dict = {"o": 0}
 
             while True:
-                posts_url: str = f"{DOMAIN}/api/v1/{service}/user/{creator_id}"
+                posts_url: str = f"{self._domain}/api/v1/{service}/user/{creator_id}"
                 posts_response: Response = self._sess.get(posts_url, params=params)
 
                 # request successful.
@@ -218,7 +204,7 @@ class Kemono(Scraper):
 
         # structured output wanted.
         if self._args.output_structured:
-            self._destination_dir = path.join(self._args.output_structured, NAME, f"{post["user"]}_{creator["name"]}")
+            self._destination_dir = path.join(self._args.output_structured, self._name, f"{post["user"]}_{creator["name"]}")
 
         for attachment in post["attachments"]:
             data_filename: str = attachment["name"]
@@ -230,9 +216,9 @@ class Kemono(Scraper):
             data_filepath: str = path.join(self._destination_dir, project_dir_name, data_filename)
             print("data_filepath:", data_filepath)
 
-            self._sess.headers.update({"Referer": f"{DOMAIN}/api/v1/{post["service"]}/user/{post["user"]}/post/{post["id"]}"})
+            self._sess.headers.update({"Referer": f"{self._domain}/api/v1/{post["service"]}/user/{post["user"]}/post/{post["id"]}"})
 
-            data_url: str = f"{DOMAIN}/data/{attachment["path"]}"
+            data_url: str = f"{self._domain}/data/{attachment["path"]}"
             print("data_url:", data_url)
             data_reponse: Response = self._sess.get(data_url)
 
@@ -287,7 +273,7 @@ class Kemono(Scraper):
 
 
     def _retrieve_profile(self, service: str, creator_id: str) -> dict:
-        profile_url: str = f"{DOMAIN}/api/v1/{service}/user/{creator_id}/profile"
+        profile_url: str = f"{self._domain}/api/v1/{service}/user/{creator_id}/profile"
         profile_response: Response = self._sess.get(profile_url)
         profile: dict = profile_response.json()
         #print("profile:", profile)
@@ -296,7 +282,7 @@ class Kemono(Scraper):
 
 
     def _retrieve_post(self, service: str, creator_id: str, post_id: str) -> dict:
-        post_url: str = f"{DOMAIN}/api/v1/{service}/user/{creator_id}/post/{post_id}"
+        post_url: str = f"{self._domain}/api/v1/{service}/user/{creator_id}/post/{post_id}"
         post_response: Response = self._sess.get(post_url)
         post: dict = post_response.json()
         print("post:", post)

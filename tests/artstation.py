@@ -1,5 +1,5 @@
 # scabies.
-from scratches.neo_artstation import Artstation
+from scratches.artstation import Artstation
 
 
 search_url: str = "https://www.artstation.com/search?sort_by=relevance&query=female%20character"

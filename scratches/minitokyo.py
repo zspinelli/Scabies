@@ -4,20 +4,16 @@
 from scabies.scraper import Scraper
 
 
-NAME: str = "minitokyo"
-DOMAIN: str = "http://www.minitokyo.net/"
-
-
 class MiniTokyo(Scraper):
     def __init__(self):
-        super().__init__(NAME)
-
-
-    def run(self, args: list):
-        pass
+        super().__init__("minitokyo", "http://www.minitokyo.net")
 
 
     def _parse_args(self, args: list):
+        pass
+
+
+    def run(self, args: list):
         pass
 
 

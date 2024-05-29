@@ -3,20 +3,16 @@ from scabies import args_output, Strings
 from scabies.scraper import Scraper
 
 
-NAME: str = "khanacademy"
-DOMAIN: str = ""
-
-
 class KhanAcademy(Scraper):
     def __init__(self):
-        super().__init__(NAME)
-
-
-    def run(self, args: list):
-        pass
+        super().__init__("khanacademy", "https://www.khanacademy.org")
 
 
     def _parse_args(self, args: list):
+        pass
+
+
+    def run(self, args: list):
         pass
 
 

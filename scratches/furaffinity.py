@@ -12,10 +12,6 @@ from bs4 import BeautifulSoup
 from requests import Response
 
 
-_NAME: str = "furaffinity"
-_DOMAIN: str = "https://www.furaffinity.net"
-
-
 class Furaffinity(Scraper):
     class MODES:
         SEARCH: str = "search"
@@ -51,24 +47,11 @@ class Furaffinity(Scraper):
 
 
     def __init__(self):
-        super().__init__(_NAME)
-
-
-    def run(self, args: list):
-        print(Strings.OP_STARTING.format(_NAME))
-
-        self._parse_args(args)
-
-        # delegate to required mode.
-        if self._args.mode == self.MODES.SEARCH: self._process_search_mode()
-        elif self._args.mode == self.MODES.USER: self._process_user_mode()
-        elif self._args.mode == self.MODES.POST: self._process_post_mode()
-
-        print(Strings.OP_FINISHED.format(_NAME))
+        super().__init__("furaffinity", "https://www.furaffinity.net")
 
 
     def _parse_args(self, args: list):
-        parser: ArgumentParser = ArgumentParser(description=f"scabies for {_NAME}")
+        parser: ArgumentParser = ArgumentParser(description=f"scabies for {self._name}")
         modes = parser.add_subparsers(
             title="modes",
             dest="mode",
@@ -140,6 +123,19 @@ class Furaffinity(Scraper):
         args_cookies.validate_cookie_args(self._args, self._sess)
 
         args_time.validate_time_selection_args(self._args)
+
+
+    def run(self, args: list):
+        print(Strings.OP_STARTING.format(self._name))
+
+        self._parse_args(args)
+
+        # delegate to required mode.
+        if self._args.mode == self.MODES.SEARCH: self._process_search_mode()
+        elif self._args.mode == self.MODES.USER: self._process_user_mode()
+        elif self._args.mode == self.MODES.POST: self._process_post_mode()
+
+        print(Strings.OP_FINISHED.format(self._name))
 
 
     def _add_user_parts(self, parser: ArgumentParser):
@@ -215,7 +211,7 @@ class Furaffinity(Scraper):
 
             # structured output wanted.
             if self._args.output_structured:
-                self._destination_dir = path.join(self._args.output_structured, _NAME, name)
+                self._destination_dir = path.join(self._args.output_structured, self._name, name)
 
             # need to read time resume file.
             if self._args.need_time_resume:
@@ -249,7 +245,7 @@ class Furaffinity(Scraper):
                 following_list_filepath: str = path.join(self._destination_dir, "following.txt")
                 following_list = open(following_list_filepath, "w")
 
-                for name in self._retrieve_paginated_namebox(_DOMAIN + f"/watchlist/by/{name}"):
+                for name in self._retrieve_paginated_namebox(self._domain + f"/watchlist/by/{name}"):
                     #for following in data:
                         #print("found following: {}".format(following["username"]))
                         #following_list.write(following["username"])
@@ -264,7 +260,7 @@ class Furaffinity(Scraper):
                 following_list_filepath: str = path.join(self._destination_dir, "followers.txt")
                 following_list = open(following_list_filepath, "w")
 
-                for name in self._retrieve_paginated_namebox(_DOMAIN + f"/watchlist/to/{name}"):
+                for name in self._retrieve_paginated_namebox(self._domain + f"/watchlist/to/{name}"):
                     #for following in data:
                         ##print("found follower: {}".format(following["username"]))
                         #following_list.write(following["username"])

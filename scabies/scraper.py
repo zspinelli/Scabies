@@ -12,6 +12,33 @@ from requests import Session, Response
 from scabies import session, Strings
 
 
+class ScraperInfo:
+    def __init__(self, name: str, domain: str, modes: list, particles: dict):
+        setattr(self, "NAME", name)
+        setattr(self, "DOMAIN", domain)
+
+        # ---- modes. ---- #
+
+        setattr(self, "MODE", None)
+
+        for mode in modes:
+            setattr(self.MODE, mode.upper(), mode.lower())
+
+        # ---- parts. ---- #
+
+        default: list = []
+        legend: list = []
+
+        for key, value in particles:
+            for name, code in value:
+                pass
+
+            setattr(self, key.upper(), None)
+
+        setattr(self, "LEGEND", )
+        setattr(self, "DEFAULT", )
+
+
 class Scraper:
     __doc__ = "base class for all scrapers. features name(), run(), and _parse_args() to " \
         "assist automation by the umbrella cli."

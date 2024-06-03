@@ -1,5 +1,81 @@
 # stdlib.
 from copy import deepcopy
+from enum import Enum
+
+
+def _valid_str() -> bool:
+    return False
+
+
+def _valid_int() -> bool:
+    return False
+
+
+def _valid_date() -> bool:
+    return False
+
+
+VALIDATOR = Enum("VALIDATOR", [
+    "STR",
+    "INT",
+    "DATE"
+])
+
+
+class ArgParser:
+    def __init__(self,
+                 program: str=""):
+        pass
+
+
+    def add_option(self,
+                   token: str,
+                   dest: str="",
+                   usage: str="",
+                   required: bool=False,
+                   nargs: int=1,
+                   remainder: bool=False,
+                   type,
+                   choices: list,
+                   default):
+        pass
+
+
+    def add_branch(self,
+                   token: str,
+                   dest: str="",
+                   usage: str="") -> ArgParser:
+        pass
+
+
+    def structure(self) -> dict:
+        return {}
+
+    structure.__doc__ = "returns a dict of all the configurable parameters that will be parsed"
+
+
+if __name__ == "__main__":
+    parser = ArgParser()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class _Arg:
@@ -126,7 +202,7 @@ class ArgParser:
 
         return structure
 
-    structure.__doc__ = "returns a dict of all the configurable parameters that will be parsed"
+
 
 
     def parse(self, args: list[str]) -> dict:

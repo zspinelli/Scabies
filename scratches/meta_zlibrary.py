@@ -5,7 +5,7 @@ from scabies.scraper import Scraper
 # stdlib.
 from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import Lock, cpu_count
+from multiprocessing import cpu_count
 from os import path
 
 # scraping.
@@ -14,12 +14,9 @@ from requests import Response
 
 
 class _Slot:
-    def __init__(self, num: int, start_group: str, start_hash: str):
-        self.num: int = num
+    def __init__(self, start_group: str, start_hash: str):
         self.group: str = start_group
-        self.next_group: str = ""
         self.hash: str = start_hash
-        self.done: bool = False
 
 
 class ZLibraryMeta(Scraper):
@@ -30,36 +27,8 @@ class ZLibraryMeta(Scraper):
         super().__init__("zlibrary-meta", "https://singlelogin.re")
 
         self._next_group: str = "0" * 7
-        self._next_group_lock: Lock = Lock()
+        self._pool: ProcessPoolExecutor | None = None
         self._slots: list = []
-
-
-    def run(self, args: list):
-        print(Strings.OP_STARTING.format(self.name()))
-
-        self._parse_args(args)
-
-        # ---- initialize slots. ---- #
-
-        for i in range(cpu_count()):
-            self._slots.append(_Slot(i, self._next_group, "0" * 6))
-            self._next_group = self._increment_ordinator_string(self._next_group)
-
-        # need to resume previous operation.
-        if self._args.need_state_resume:
-            # todo: load savestate.
-            pass
-
-        # ---- process. ---- #
-
-        with ProcessPoolExecutor() as pool:
-            while True:
-                for slot in self._slots:
-                    pool.submit(self._group_hashes_task, slot)
-
-                break
-
-        print(Strings.OP_FINISHED.format(self._name))
 
 
     def _parse_args(self, args: list):
@@ -67,6 +36,7 @@ class ZLibraryMeta(Scraper):
 
         parser.add_argument(
             "-o",
+            required=True,
             help="output path. writes scrape result logs in the given directory.",
             dest="output"
         )
@@ -74,7 +44,7 @@ class ZLibraryMeta(Scraper):
         parser.add_argument(
             "--lsr",
             action="store_true",
-            help="resume last run state from logs",
+            help="load or save progress in log files",
             dest="need_state_resume"
         )
 
@@ -84,49 +54,59 @@ class ZLibraryMeta(Scraper):
         #print(f"input: {self._args}")
 
 
+    def run(self, args: list):
+        print(Strings.OP_STARTING.format(self.name()))
+
+        self._parse_args(args)
+
+        self._resume_filepath: str = f"{self._args.output}/{self._name}_resume.txt"
+
+        with ProcessPoolExecutor(cpu_count() + 1) as self._pool:
+            self._pool.submit(self._manage_slots_task)
+
+            while True:
+                # user requests early exit.
+                if input("type \"q\" to stop:") in ["q", "Q"]:
+                    break
+
+        print(Strings.OP_FINISHED.format(self._name))
+
+
+    def _manage_slots_task(self):
+        # ---- initialize slots. ---- #
+
+        for i in range(cpu_count()):
+            self._slots.append(_Slot(self._next_group, "0" * 6))
+            self._next_group = self._increment_ordinator_string(self._next_group)
+
+        # ---- resume previous operation. ---- #
+
+        # need to resume previous operation.
+        if self._args.need_state_resume and path.isfile(self._resume_filepath):
+            resume_file = open(self._resume_filepath, "r")
+            i: int = 0
+
+            for line in resume_file.readlines():
+                parts: list = line.split(":")
+
+                self._slots[i].group = parts[0]
+                self._slots[i].hash = parts[1]
+
+            resume_file.close()
+
+        # ---- process. ---- #
+
+        for slot in self._slots:
+            self._pool.submit(self._group_hashes_task, slot)
+
+
     def _group_hashes_task(self, slot: _Slot):
-        hash: str = start_hash
-
-        while hash != "z" * 6:
-            pass
-
         print("started testing group:", self._next_group)
 
-        self._slots[]
+        while slot.hash != "z" * 6:
+            slot.hash = self._increment_ordinator_string(slot.hash)
 
-
-
-
-    def _async_task(self, group: str, hash_slot: int, hash: str= "0" * 6):
-        result_log = None
-
-
-        while hash != "z" * 6:
-            group_hash: str = f"{group}/{hash}"
-
-            print(f"testing: {group_hash} ... ", end="")
-
-            probe_url: str = f"{self._domain}/book/{group_hash}"
-            probe_response: Response = self._sess.get(probe_url)
-
-            page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
-            book_page = page_soup.find("body", {"class": "books/details"})
-
-            # found a book page.
-            if book_page:
-                print("found book page.")
-
-                # log not open yet.
-                if not result_log:
-                    result_log = open(path.join(self._args.output, "results.txt"), "w+")
-
-                result_log.write(f"{group_hash}\n")
-
-            # got redirected to home.
-            else:
-                print("nothing here.")
-
-            hash = self._increment_ordinator_string(hash)
+        del slot
 
 
     def _increment_ordinator_string(self, ord_string: str) -> str:
@@ -169,3 +149,46 @@ if __name__ == "__main__":
 
     run(argv)
     exit(0)
+
+
+
+
+
+
+
+
+
+
+
+    def _async_task(self, group: str, hash_slot: int, hash: str= "0" * 6):
+        result_log = None
+
+
+        while hash != "z" * 6:
+            group_hash: str = f"{group}/{hash}"
+
+            print(f"testing: {group_hash} ... ", end="")
+
+            probe_url: str = f"{self._domain}/book/{group_hash}"
+            probe_response: Response = self._sess.get(probe_url)
+
+            page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
+            book_page = page_soup.find("body", {"class": "books/details"})
+
+            # found a book page.
+            if book_page:
+                print("found book page.")
+
+                # log not open yet.
+                if not result_log:
+                    result_log = open(path.join(self._args.output, "results.txt"), "w+")
+
+                result_log.write(f"{group_hash}\n")
+
+            # got redirected to home.
+            else:
+                print("nothing here.")
+
+
+
+

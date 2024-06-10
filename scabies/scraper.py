@@ -1,42 +1,45 @@
 # stdlib.
 from argparse import Namespace
+from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
+from multiprocessing import cpu_count
 from os import path
 from urllib.parse import urlparse, ParseResult
 
 # scraping.
 from bs4 import BeautifulSoup
-from requests import Session, Response
+from requests import Response
 
 # scabies.
 from scabies import session, Strings
+from scabies.session import ScabiesSession
 
 
 class ScraperInfo:
     def __init__(self, name: str, domain: str, modes: list, particles: dict):
-        setattr(self, "NAME", name)
-        setattr(self, "DOMAIN", domain)
+        self.NAME = name
+        self.DOMAIN = domain
+        self.MODE = None
 
         # ---- modes. ---- #
-
-        setattr(self, "MODE", None)
 
         for mode in modes:
             setattr(self.MODE, mode.upper(), mode.lower())
 
         # ---- parts. ---- #
 
-        default: list = []
-        legend: list = []
-
         for key, value in particles:
+            default: list = []
+            legend: list = []
+
+            setattr(self, key.upper(), None)
+            attr = getattr(self, key.upper())
+
             for name, code in value:
                 pass
 
-            setattr(self, key.upper(), None)
-
-        setattr(self, "LEGEND", )
-        setattr(self, "DEFAULT", )
+            setattr(attr, "LEGEND", default)
+            setattr(attr, "DEFAULT", legend)
 
 
 class Scraper:
@@ -52,7 +55,7 @@ class Scraper:
         self._name: str = name
         self._domain: str = domain
         self._args: Namespace = Namespace()
-        self._sess: Session = session.new(interval)
+        self._sess: ScabiesSession = session.new(interval)
         self._destination_dir: str = ""
         self._resume_filepath: str = ""
         self._resume_time: datetime = datetime.min
@@ -163,6 +166,51 @@ class Scraper:
         print(Strings.OP_FINISHED.format(self.name()))
 
     run.__doc__ = "run the scraper on parameters: list[str] passed to args"
+
+
+class MetaScraper(Scraper):
+    def __init__(self, name, domain, thread_task, print_stats):
+        super().__init__(name, domain)
+
+        self._sess = None
+        self._num_slots: int = cpu_count() * 2
+        self._slots: list = []
+        self._thread_pool: ProcessPoolExecutor = ProcessPoolExecutor(cpu_count() * 2)
+        self._thread_task = thread_task
+        self._print_stats = print_stats
+
+
+    def _main_task(self):
+        # ---- initialize slots. ---- #
+
+        for i in range(self._num_slots):
+
+
+
+
+
+
+        for i in range(cpu_count()):
+            self._slots.append(_Slot(self._next_uname))
+            self._next_group = self._increment_ordinator_string(self._next_group)
+
+        # ---- resume previous operation. ---- #
+
+        # need to resume previous operation.
+        if self._args.need_state_resume and path.isfile(self._resume_filepath):
+            resume_file = open(self._resume_filepath, "r")
+            i: int = 0
+
+            for line in resume_file.readlines():
+                self._slots[i].name = line
+                i += 1
+
+            resume_file.close()
+
+        # ---- process. ---- #
+
+        for slot in self._slots:
+            self._pool.submit(self._name_task, slot)
 
 
 def run(args: list):

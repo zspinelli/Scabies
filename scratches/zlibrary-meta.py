@@ -1,11 +1,20 @@
+"""
+what im thinking about while working on the meta scrapers is
+making a special base class for them to share their multithreading and tor routing implementation.
+additionally i'd like to add a blessed tui to display stats about the scraping and threads at the same
+time as offering a command prompt to pause or abort the scrape. a high speed scroll of hashes being tested
+isnt' very informative.
+"""
+
+
 # scabies.
-from scabies import Strings
+from scabies import Strings, session, tor
 from scabies.scraper import Scraper
 
 # stdlib.
 from argparse import ArgumentParser
 from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import cpu_count
+from multiprocessing import cpu_count, Lock
 from os import path
 
 # scraping.
@@ -20,13 +29,17 @@ class _Slot:
 
 
 class ZLibraryMeta(Scraper):
-    _GROUP_LENGTH: int = 7
-    _HASH_LENGTH: int = 6
-
     def __init__(self):
-        super().__init__("zlibrary-meta", "https://singlelogin.re")
+        super().__init__("zlibrary-meta-all-books", "https://singlelogin.re")
 
-        self._next_group: str = "0" * 7
+        self._sess = None
+
+        self._MAX_GROUP_LENGTH: int = 7
+        self._HASH_LENGTH: int = 6
+
+        self._next_group: str = "0"
+        self._next_group_lock: Lock = Lock()
+
         self._pool: ProcessPoolExecutor | None = None
         self._slots: list = []
 
@@ -76,7 +89,7 @@ class ZLibraryMeta(Scraper):
         # ---- initialize slots. ---- #
 
         for i in range(cpu_count()):
-            self._slots.append(_Slot(self._next_group, "0" * 6))
+            self._slots.append(_Slot(self._next_group, "0"))
             self._next_group = self._increment_ordinator_string(self._next_group)
 
         # ---- resume previous operation. ---- #
@@ -92,6 +105,8 @@ class ZLibraryMeta(Scraper):
                 self._slots[i].group = parts[0]
                 self._slots[i].hash = parts[1]
 
+                i += 1
+
             resume_file.close()
 
         # ---- process. ---- #
@@ -101,9 +116,32 @@ class ZLibraryMeta(Scraper):
 
 
     def _group_hashes_task(self, slot: _Slot):
-        print("started testing group:", self._next_group)
+        sess = session.new(0)
+        #tor.start()
 
-        while slot.hash != "z" * 6:
+        result_log = None
+
+        while slot.hash != "z" * self._HASH_LENGTH:
+            group_hash: str = f"{slot.group}/{slot.hash}"
+
+            print(f"testing: {group_hash} ... ", end="")
+
+            probe_url: str = f"{self._domain}/book/{group_hash}"
+            probe_response: Response = sess.get(probe_url)
+
+            page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
+            book_page = page_soup.find("body", {"class": "books/details"})
+
+            # found a book page.
+            if book_page:
+                print("found book page.")
+
+                # log not open yet.
+                if not result_log:
+                    result_log = open(path.join(self._args.output, "results.txt"), "w+")
+
+                result_log.write(f"{group_hash}\n")
+
             slot.hash = self._increment_ordinator_string(slot.hash)
 
         del slot
@@ -120,6 +158,11 @@ class ZLibraryMeta(Scraper):
             front: str = ord_string[:i - 1]
             back: str = ord_string[i:]
             ord_val: int = ord(ord_string[i - 1])
+
+            # rollover everything and increase length.
+            if all(char == 'z' for char in ord_string):
+                ord_string = '0' * (len(ord_string) + 1)
+                break
 
             # rollover from '9' to 'a'.
             if ord_val == 57:
@@ -149,46 +192,3 @@ if __name__ == "__main__":
 
     run(argv)
     exit(0)
-
-
-
-
-
-
-
-
-
-
-
-    def _async_task(self, group: str, hash_slot: int, hash: str= "0" * 6):
-        result_log = None
-
-
-        while hash != "z" * 6:
-            group_hash: str = f"{group}/{hash}"
-
-            print(f"testing: {group_hash} ... ", end="")
-
-            probe_url: str = f"{self._domain}/book/{group_hash}"
-            probe_response: Response = self._sess.get(probe_url)
-
-            page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
-            book_page = page_soup.find("body", {"class": "books/details"})
-
-            # found a book page.
-            if book_page:
-                print("found book page.")
-
-                # log not open yet.
-                if not result_log:
-                    result_log = open(path.join(self._args.output, "results.txt"), "w+")
-
-                result_log.write(f"{group_hash}\n")
-
-            # got redirected to home.
-            else:
-                print("nothing here.")
-
-
-
-

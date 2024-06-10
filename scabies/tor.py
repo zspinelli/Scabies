@@ -16,24 +16,14 @@ from subprocess import Popen
 from stem import process
 
 
-os_name: str = system().lower()
-
-
-_BASE_PATH: dict = {
-    "windows": path.join(environ["USERPROFILE"], "Desktop", "Tor Browser", "Browser", "TorBrowser")
-    # "linux": path.join()
-    # "darwin": path.join()
+_OS_TOR_PATH: dict = {
+    "Windows": path.join(environ["USERPROFILE"], "Desktop", "Tor Browser", "Browser", "TorBrowser", "Tor", "tor.exe")
+    # "Linux": path.join()
+    # "Darwin": path.join()
 }
 
 
-_TOR_PATH: dict = {
-    "windows": path.join(_BASE_PATH[os_name], "Tor", "tor.exe")
-    # "linux": path.join()
-    # "darwin": path.join()
-}
-
-
-_tor_path: str = ""
+_tor_path: str = _OS_TOR_PATH[system()]
 _tor_proc: Popen | None = None
 
 
@@ -42,6 +32,7 @@ def add_tor_args(parser: ArgumentParser):
 
     tor_group.add_argument(
         "-tor",
+        default=_OS_TOR_PATH[system()],
         required=False,
         help="abs. or rel. path to tor install directory"
     )
@@ -50,8 +41,9 @@ def add_tor_args(parser: ArgumentParser):
 def validate_tor_args(parsed: Namespace):
     global _tor_path
 
+    # no tor path was given.
     if not hasattr(parsed, "tor"):
-        _tor_path = _TOR_PATH[os_name],
+        _tor_path = _OS_TOR_PATH[system()]
 
 
 def _stop():
@@ -82,7 +74,7 @@ def start() -> bool:
         _tor_proc = process.launch_tor_with_config(
             config={"SocksPort": "9150"},
             init_msg_handler=_callback,
-            tor_cmd=_TOR_PATH[os_name]
+            tor_cmd=_tor_path
         )
 
         atexit.register(_stop)

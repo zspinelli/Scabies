@@ -74,13 +74,13 @@ if __name__ == "__main__":
         scratch_cmds = scratch_cmd.add_subparsers(dest="scratch_cmd")
 
         scratch_cmd.add_argument(
-            "record",
+            "--record",
             action="store_true",
             help="record the command in the autolist"
         )
 
         scratch_cmd.add_argument(
-            "generic",
+            "--generic",
             action="store_true",
             help="use the generic html scraper"
         )
@@ -89,6 +89,12 @@ if __name__ == "__main__":
             "urls",
             nargs="+",
             help="one or more urls to scrape"
+        )
+
+        scratch_cmd_list: ArgumentParser = scratch_cmds.add_parser(
+            "list",
+            help="print a list of scrapers",
+            add_help=False
         )
 
         scratch_cmd_help: ArgumentParser = scratch_cmds.add_parser(

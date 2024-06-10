@@ -101,6 +101,6 @@ class ScabiesSession(Session):
         return response
 
 
-def new(interval: int) -> Session:
-    sess: Session = ScabiesSession(interval)
+def new(interval: int) -> ScabiesSession:
+    sess: ScabiesSession = ScabiesSession(interval)
     return sess

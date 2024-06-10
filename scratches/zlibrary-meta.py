@@ -148,10 +148,6 @@ class ZLibraryMeta(Scraper):
 
 
     def _increment_ordinator_string(self, ord_string: str) -> str:
-        # saftey mechanism.
-        if not ord_string:
-            return ""
-
         i: int = len(ord_string)
 
         while True:

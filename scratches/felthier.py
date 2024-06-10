@@ -278,10 +278,13 @@ class Felthier(Scraper):
             args_output.write_toml(self._args.allow_overwrite_meta, info.filepath_out, data)
 
 
+def run(args: list):
+    scraper: Felthier = Felthier()
+    scraper.run(args)
+
+
 if __name__ == "__main__":
     from sys import argv, exit
 
-    scraper: Felthier = Felthier()
-    scraper.run(argv)
-
+    run(argv)
     exit(0)

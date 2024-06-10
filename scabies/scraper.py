@@ -173,9 +173,11 @@ class MetaScraper(Scraper):
         super().__init__(name, domain)
 
         self._sess = None
-        self._num_slots: int = cpu_count() * 2
+
         self._slots: list = []
-        self._thread_pool: ProcessPoolExecutor = ProcessPoolExecutor(cpu_count() * 2)
+        self._num_slots: int = cpu_count() * 2
+        self._pool: ProcessPoolExecutor = ProcessPoolExecutor(self._num_slots)
+
         self._thread_task = thread_task
         self._print_stats = print_stats
 
@@ -184,6 +186,12 @@ class MetaScraper(Scraper):
         # ---- initialize slots. ---- #
 
         for i in range(self._num_slots):
+            pass
+
+        # ---- process. ---- #
+
+        for slot in self._slots:
+            self._pool.submit(self._thread_task, slot)
 
 
 
@@ -207,10 +215,6 @@ class MetaScraper(Scraper):
 
             resume_file.close()
 
-        # ---- process. ---- #
-
-        for slot in self._slots:
-            self._pool.submit(self._name_task, slot)
 
 
 def run(args: list):

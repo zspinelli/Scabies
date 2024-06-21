@@ -18,7 +18,6 @@ class Kemono(Scraper):
         FAVS: str = "favorites"
         CREATOR: str = "creator"
         POST: str = "post"
-        META: str = "meta"
 
     CONTENT_TYPES: SwitchPlate({
         "IMAGE": "I",
@@ -101,7 +100,6 @@ class Kemono(Scraper):
         if self._args.mode == self.MODES.FAVS:      self._process_favorites_mode()
         elif self._args.mode == self.MODES.CREATOR: self._process_creator_mode()
         elif self._args.mode == self.MODES.POST:    self._process_post_mode()
-        elif self._args.mode == self.MODES.META:    self._process_meta_mode()
 
         print(Strings.OP_FINISHED.format(self._name))
 
@@ -206,6 +204,10 @@ class Kemono(Scraper):
         if self._args.output_structured:
             self._destination_dir = path.join(self._args.output_structured, self._name, f"{post["user"]}_{creator["name"]}")
 
+        for embed in post["embeds"]:
+            data_filepath: str = path.join(self._destination_dir, project_dir_name)
+            self.auto_resolve(embed["url"], data_filepath)
+
         for attachment in post["attachments"]:
             data_filename: str = attachment["name"]
 
@@ -255,10 +257,6 @@ class Kemono(Scraper):
             # save toml format.
             if self._args.toml_meta:
                 args_output.write_toml(self._args.allow_overwrite_meta, record_filepath, meta)
-
-
-    def _process_meta_mode(self):
-        pass
 
 
     def _parse_path_parts(self, url: str) -> list:

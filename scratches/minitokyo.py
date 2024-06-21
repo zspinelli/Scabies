@@ -1,4 +1,5 @@
 # stdlib.
+from argparse import ArgumentParser
 
 # scabies.
 from scabies.scraper import Scraper
@@ -10,7 +11,18 @@ class MiniTokyo(Scraper):
 
 
     def _parse_args(self, args: list):
-        pass
+        parser: ArgumentParser = ArgumentParser(description="scabies for minitokyo")
+        modes = parser.add_subparsers(
+            title="modes",
+            dest="mode",
+            required=True,
+            help="see individual mode helps for additional options"
+        )
+
+        # ---- parse and validate. ---- #
+
+        self._args = parser.parse_args()
+        #print(f"input: {self._args}")
 
 
     def run(self, args: list):

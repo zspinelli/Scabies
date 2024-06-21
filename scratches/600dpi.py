@@ -83,16 +83,6 @@ class SixHundredDPI(Scraper):
         print(Strings.OP_FINISHED.format(self._name))
 
 
-
-
-
-    def _process_art_mode(self):
-        for url in self._args.urls:
-            print("started art: " + url)
-
-            print("finished art: " + url)
-
-
     def _process_search_mode(self):
         print(Strings.SEARCH_STARTED.format(""))
 
@@ -120,6 +110,13 @@ class SixHundredDPI(Scraper):
                     break
 
             print(Strings.SEARCH_FINISHED.format(""))
+
+
+    def _process_art_mode(self):
+        for url in self._args.urls:
+            print("started art: " + url)
+
+            print("finished art: " + url)
 
 
     def _scrape_art(self, page_url: str):

@@ -1,42 +1,153 @@
 # scabies.
+from concurrent.futures import ThreadPoolExecutor
+
 from scabies import Strings
-from scabies.scraper import Scraper, MetaScraper
+from scabies.scraper import Scraper
 
 # stdlib.
-from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import cpu_count
-from os import path
+import atexit
+from argparse import ArgumentParser
+from os import makedirs, path
+from time import sleep
 
 # scraping.
-import stem
-from requests import Session, Response
+from blessed import Terminal
+from requests import Response
 
 
 class _Slot:
-    def __init__(self, start_name: str):
-        self.name: str = start_name
+    def __init__(self, name: str):
+        self.name = name
 
 
-class DeviantartMeta(MetaScraper):
+class DeviantartMeta(Scraper):
     def __init__(self):
-        super().__init__(
-            "deviantart-meta-all-usernames",
-            "https://www.deviantart.com",
-            self._thread_task,
-            self._print_stats
-        )
+        super().__init__("deviantart-meta", "https://www.deviantart.com", 2)
+
+        self._MAX_UNAME_LEN: int = 20
+
+        self._aborted: bool = False
+        self._slots: list = [_Slot("0-0")]
 
 
     def _parse_args(self, args: list):
-        pass
+        parser: ArgumentParser = ArgumentParser()
+
+        parser.add_argument(
+            "-o",
+            required=True,
+            help="output path. writes scrape result logs in the given directory.",
+            dest="output"
+        )
+
+        parser.add_argument(
+            "--lsr",
+            action="store_true",
+            help="load or save progress in log files",
+            dest="need_state_resume"
+        )
+
+        # ---- parse and validate. ---- #
+
+        self._args = parser.parse_args()
+        print(f"input: {self._args}")
 
 
-    def _thread_task(self):
-        pass
+    def run(self, args: list):
+        terminal = Terminal()
+        pool: ThreadPoolExecutor = ThreadPoolExecutor()
+
+        print(Strings.OP_STARTING.format(self._name))
+
+        self._parse_args(args)
+
+        # ---- resume previous operation. ---- #
+
+        self._resume_filepath: str = f"{self._args.output}/{self._name.strip("_meta")}/{self._name}_resume.txt"
+
+        # need to resume previous operation.
+        if self._args.need_state_resume and path.isfile(self._resume_filepath):
+            with open(self._resume_filepath, "r") as resume_file:
+                line: str = resume_file.readline()
+
+                self._slots[0].name = line
+
+        # ---- start mining. ---- #
+
+        pool.submit(self._task, self._slots[0])
+
+        while True:
+            # user requested abort.
+            if input() in ["q", "Q"]:
+                break
+
+        print(Strings.OP_FINISHED.format(self._name))
 
 
-    def _print_stats(self):
-        pass
+    def _task(self, slot):
+        result_log = None
+
+        while name != "z" * self._MAX_UNAME_LEN:
+            print(f"testing: {name} ... ", end="")
+
+            probe_url: str = f"{self._domain}/{name}"
+            probe_response: Response = self._sess.get(probe_url)
+
+            # throttle or server busy.
+            if probe_response.status_code == 403:
+                print(probe_response.status_code, "waiting and retrying...")
+                sleep(20)
+                continue
+
+            # found a user page.
+            elif probe_response.status_code == 200:
+                print("found a user.")
+
+                # log not open yet.
+                if not result_log:
+                    makedirs(self._args.output, exist_ok=True)
+                    result_log = open(path.join(self._args.output, "results.txt"), "a")
+
+                result_log.write(f"{name}\n")
+                result_log.flush()
+
+            # found nothing.
+            else:
+                print(probe_response.status_code)
+
+            name = self._increment_ordinator_string(name)
+
+
+
+
+
+
+
+
+
+
+    def run(self, args: list):
+        def write_resume():
+            # need to save this operation.
+            if self._args.need_state_resume:
+                resume_file = open(self._resume_filepath, "w")
+                resume_file.write(name + "\n")
+                resume_file.close()
+
+        atexit.register(write_resume)
+
+
+
+        """# need to save this operation.
+        if self._args.need_state_resume:
+            resume_file = open(self._resume_filepath, "w")
+            resume_file.write(name + "\n")
+            resume_file.close()"""
+
+        atexit.unregister(write_resume)
+
+
+
 
 
     def _increment_ordinator_string(self, ord_string: str) -> str:
@@ -76,91 +187,6 @@ class DeviantartMeta(MetaScraper):
                 break
 
         return ord_string
-
-
-
-
-
-
-
-
-class DeviantartMeta(Scraper):
-    def __init__(self):
-        super().__init__()
-
-        self._sess = None
-
-        self._MAX_UNAME_LEN: int = 20
-        self._next_uname: str = "0-0"
-
-
-
-
-    def run(self, args: list):
-        print(Strings.OP_STARTING.format(self.name()))
-
-        self._parse_args(args)
-
-        self._resume_filepath: str = f"{self._args.output}/{self._name}_resume.txt"
-
-        with ProcessPoolExecutor(cpu_count() + 1) as self._pool:
-            self._pool.submit(self._manage_slots_task)
-
-            while True:
-                # user requests early exit.
-                if input("type \"q\" to stop:") in ["q", "Q"]:
-                    break
-
-        print(Strings.OP_FINISHED.format(self._name))
-
-
-
-
-
-    def _manage_slots_task(self):
-        # ---- initialize slots. ---- #
-
-        for i in range(cpu_count()):
-            self._slots.append(_Slot(self._next_uname))
-            self._next_group = self._increment_ordinator_string(self._next_group)
-
-        # ---- resume previous operation. ---- #
-
-        # need to resume previous operation.
-        if self._args.need_state_resume and path.isfile(self._resume_filepath):
-            resume_file = open(self._resume_filepath, "r")
-            i: int = 0
-
-            for line in resume_file.readlines():
-                self._slots[i].name = line
-                i += 1
-
-            resume_file.close()
-
-
-
-    def _name_task(self, slot: _Slot):
-        print(f"testing: {slot.name} ... ", end="")
-
-        result_log = None
-
-        while slot.name != "z" * self._MAX_UNAME_LEN:
-            probe_url: str = f"{self._domain}/{slot.name}"
-            probe_response: Response = self._sess.get(probe_url)
-
-            # found a user page.
-            if probe_response.status_code == 200:
-                print("found book page.")
-
-                # log not open yet.
-                if not result_log:
-                    result_log = open(path.join(self._args.output, "results.txt"), "a")
-
-                result_log.write(f"{slot.name}\n")
-
-            slot.name = self._increment_ordinator_string(slot.name)
-
-        del slot
 
 
 def run(args: list):

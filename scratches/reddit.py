@@ -37,7 +37,8 @@ class Reddit(Scraper):
 
 
     def _process_sub_mode(self):
-        pass
+        for sub in self._args.subs:
+            endpoint: str = f"{sub}.json"
 
 
     def _process_thread_mode(self):
@@ -45,8 +46,30 @@ class Reddit(Scraper):
 
 
     def _process_user_mode(self):
-        pass
+        for user in self._args.users:
+            endpoint: str = f"/user/{user}/.json"
 
 
     def _process_post_mode(self):
         pass
+
+
+    def _paginate(self, endpoint: str):
+        while True:
+            pass
+
+
+    def _call(self):
+        pass
+
+
+def run(args: list):
+    scraper: Reddit = Reddit()
+    scraper.run(args)
+
+
+if __name__ == "__main__":
+    from sys import argv, exit
+
+    run(argv)
+    exit(0)

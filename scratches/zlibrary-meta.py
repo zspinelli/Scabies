@@ -1,47 +1,33 @@
-"""
-what im thinking about while working on the meta scrapers is
-making a special base class for them to share their multithreading and tor routing implementation.
-additionally i'd like to add a blessed tui to display stats about the scraping and threads at the same
-time as offering a command prompt to pause or abort the scrape. a high speed scroll of hashes being tested
-isnt' very informative.
-"""
-
-
 # scabies.
-from scabies import Strings, session, tor
+from scabies import Strings
 from scabies.scraper import Scraper
 
 # stdlib.
 from argparse import ArgumentParser
-from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import cpu_count, Lock
-from os import path
+from concurrent.futures import ThreadPoolExecutor
+from os import path, makedirs
 
 # scraping.
+from blessed import Terminal
 from bs4 import BeautifulSoup
 from requests import Response
 
 
 class _Slot:
-    def __init__(self, start_group: str, start_hash: str):
-        self.group: str = start_group
-        self.hash: str = start_hash
+    def __init__(self, group: str, code: str):
+        self.group = group
+        self.code = code
 
 
 class ZLibraryMeta(Scraper):
     def __init__(self):
-        super().__init__("zlibrary-meta-all-books", "https://singlelogin.re")
+        super().__init__("zlibrary-meta", "https://z-library.rs/")
 
-        self._sess = None
+        self._MAX_GROUP_LENGTH: int = 9
+        self._CODE_LENGTH: int = 6
 
-        self._MAX_GROUP_LENGTH: int = 7
-        self._HASH_LENGTH: int = 6
-
-        self._next_group: str = "0"
-        self._next_group_lock: Lock = Lock()
-
-        self._pool: ProcessPoolExecutor | None = None
-        self._slots: list = []
+        self._aborted: bool = False
+        self._slots: list = [_Slot("0" * 6, "0" * self._CODE_LENGTH)]
 
 
     def _parse_args(self, args: list):
@@ -64,70 +50,61 @@ class ZLibraryMeta(Scraper):
         # ---- parse and validate. ---- #
 
         self._args = parser.parse_args()
-        #print(f"input: {self._args}")
+        print(f"input: {self._args}")
 
 
     def run(self, args: list):
-        print(Strings.OP_STARTING.format(self.name()))
+        terminal = Terminal()
+        pool: ThreadPoolExecutor = ThreadPoolExecutor()
+
+        print(Strings.OP_STARTING.format(self._name))
 
         self._parse_args(args)
 
+        # ---- resume previous operation. ---- #
+
         self._resume_filepath: str = f"{self._args.output}/{self._name}_resume.txt"
 
-        with ProcessPoolExecutor(cpu_count() + 1) as self._pool:
-            self._pool.submit(self._manage_slots_task)
+        # need to resume previous operation.
+        if self._args.need_state_resume and path.isfile(self._resume_filepath):
+            with open(self._resume_filepath, "r") as resume_file:
+                line: str = resume_file.readline()
+                parts: list = line.split(":")
 
-            while True:
-                # user requests early exit.
-                if input("type \"q\" to stop:") in ["q", "Q"]:
-                    break
+                self._slots[0].group = parts[0]
+                self._slots[0].code = parts[1]
+
+        # ---- start mining. ---- #
+
+        print("type \"q\" to stop:")
+        pool.submit(self._task, self._slots[0])
+
+        while self._slots:
+            # user requests early exit.
+            if input() in ["q", "Q"]:
+                self._aborted = True
+                break
+
+        # need to store current operation.
+        if self._args.need_state_resume :
+            with open(self._resume_filepath, "w") as resume_file:
+                resume_file.write(f"{self._slots[0].group}:{self._slots[0].code}")
 
         print(Strings.OP_FINISHED.format(self._name))
 
 
-    def _manage_slots_task(self):
-        # ---- initialize slots. ---- #
-
-        for i in range(cpu_count()):
-            self._slots.append(_Slot(self._next_group, "0"))
-            self._next_group = self._increment_ordinator_string(self._next_group)
-
-        # ---- resume previous operation. ---- #
-
-        # need to resume previous operation.
-        if self._args.need_state_resume and path.isfile(self._resume_filepath):
-            resume_file = open(self._resume_filepath, "r")
-            i: int = 0
-
-            for line in resume_file.readlines():
-                parts: list = line.split(":")
-
-                self._slots[i].group = parts[0]
-                self._slots[i].hash = parts[1]
-
-                i += 1
-
-            resume_file.close()
-
-        # ---- process. ---- #
-
-        for slot in self._slots:
-            self._pool.submit(self._group_hashes_task, slot)
-
-
-    def _group_hashes_task(self, slot: _Slot):
-        sess = session.new(0)
-        #tor.start()
-
+    def _task(self, slot: _Slot):
         result_log = None
 
-        while slot.hash != "z" * self._HASH_LENGTH:
-            group_hash: str = f"{slot.group}/{slot.hash}"
-
+        while(
+            not self._aborted and
+            slot.code != "z" * self._CODE_LENGTH
+        ):
+            group_hash: str = f"{slot.group}/{slot.code}"
             print(f"testing: {group_hash} ... ", end="")
 
             probe_url: str = f"{self._domain}/book/{group_hash}"
-            probe_response: Response = sess.get(probe_url)
+            probe_response: Response = self._sess.get(probe_url)
 
             page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
             book_page = page_soup.find("body", {"class": "books/details"})
@@ -138,11 +115,16 @@ class ZLibraryMeta(Scraper):
 
                 # log not open yet.
                 if not result_log:
-                    result_log = open(path.join(self._args.output, "results.txt"), "w+")
+                    makedirs(self._args.output, exist_ok=True)
+                    result_log = open(f"{self._args.output}/{self._name}_results.txt", "w+")
 
                 result_log.write(f"{group_hash}\n")
 
-            slot.hash = self._increment_ordinator_string(slot.hash)
+            # found nothing.
+            else:
+                print()
+
+            slot.code = self._increment_ordinator_string(slot.code)
 
         del slot
 

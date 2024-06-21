@@ -59,12 +59,12 @@ class ScabiesSession(Session):
         # previous request made.
         else:
             time_elapsed: float = (datetime.now() - self._last_request_timestamp).total_seconds()
-            print("time_elapsed:", time_elapsed)
+            #print("time_elapsed:", time_elapsed)
 
             # required time interval not elapsed.
             if time_elapsed < self._request_interval:
                 time_to_sleep: float = self._request_interval - time_elapsed
-                print(f"required interval ({self._request_interval}) has not elapsed. waiting:", time_to_sleep, "seconds...")
+                #print(f"required interval ({self._request_interval}) has not elapsed. waiting:", time_to_sleep, "seconds...")
                 sleep(time_to_sleep)
 
 

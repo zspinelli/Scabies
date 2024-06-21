@@ -14,6 +14,7 @@ from subprocess import Popen
 
 # scraping.
 from stem import process
+from stem.control import Controller, Signal
 
 
 _OS_TOR_PATH: dict = {

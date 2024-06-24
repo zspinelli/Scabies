@@ -1,5 +1,6 @@
 # stdlib.
 from argparse import ArgumentParser, Namespace
+from os.path import dirname
 from sys import argv, exit
 
 
@@ -16,8 +17,14 @@ class _COMMANDS:
     SCRATCH: str = "scratch"
 
 
-def _parse_args(ars: list) -> Namespace:
-    pass
+_CONFIG_FILEPATH: str = dirname(__file__) + "/"
+
+
+def _parse_args(args: list) -> Namespace:
+    parser: ArgumentParser = ArgumentParser()
+    modes = parser.add_subparsers(dest="mode")
+
+    return parser.parse_args(args)
 
 
 def _process_edit_config():
@@ -86,7 +93,7 @@ if __name__ == "__main__":
 
 
 
-_CONFIG_FILEPATH: str = ""
+
 
 
 
@@ -185,36 +192,8 @@ def _process_cmd_mode():
         elif parsed.command == _COMMANDS.SCRATCH:        _process_scratch_command()
 
 
-def _process_autolist_command():
-    pass
-
-
-def _process_edit_config_command():
-    pass
-
-
-def _process_scratch_command():
-    pass
-
-
 def _parse_args(args: list) -> Namespace:
-    parser: ArgumentParser = ArgumentParser()
-    modes = parser.add_subparsers(dest="mode")
-
     cmd_mode = modes.add_parser(_MODES.CMD)
 
     auto_mode = modes.add_parser(_MODES.AUTO)
     auto_mode.add_argument("path", help="filepath to an autolist")
-
-    return parser.parse_args(args)
-
-
-def _process_auto_mode(args: Namespace):
-    with open(args.path, "r") as autolist:
-        pass
-
-
-
-
-    if args.mode == _MODES.CMD:      _process_cmd_mode()
-    elif args.mode == _MODES.AUTO:   _process_auto_mode(args)

@@ -4,30 +4,29 @@ from scabies.scraper import Scraper
 
 # stdlib.
 from argparse import ArgumentParser
-from concurrent.futures import ThreadPoolExecutor
 from os import path, makedirs
+from threading import Thread
+from time import sleep
 
 # scraping.
-from blessed import Terminal
-from bs4 import BeautifulSoup
 from requests import Response
 
 
 class _Slot:
-    def __init__(self, group: str, code: str):
-        self.group = group
-        self.code = code
+    def __init__(self, group, code):
+        self.group: str = group
+        self.code: str = code
+        self.result: int = 0
 
 
 class ZLibraryMeta(Scraper):
     def __init__(self):
-        super().__init__("zlibrary-meta", "https://z-library.rs/")
+        super().__init__("zlibrary-meta", "https://z-library.rs", timeout = 4)
 
         self._MAX_GROUP_LENGTH: int = 9
         self._CODE_LENGTH: int = 6
 
         self._aborted: bool = False
-        self._slots: list = [_Slot("0" * 6, "0" * self._CODE_LENGTH)]
 
 
     def _parse_args(self, args: list):
@@ -54,12 +53,30 @@ class ZLibraryMeta(Scraper):
 
 
     def run(self, args: list):
-        terminal = Terminal()
-        pool: ThreadPoolExecutor = ThreadPoolExecutor()
-
         print(Strings.OP_STARTING.format(self._name))
 
         self._parse_args(args)
+
+        thread: Thread = Thread(target=self._task_manage_slots)
+
+        print("type \"q\" to stop:")
+        thread.start()
+
+        if input() in ["q", "Q"]:
+            self._aborted = True
+
+        thread.join()
+
+        print(Strings.OP_FINISHED.format(self._name))
+
+
+    def _task_manage_slots(self):
+        result_log = None
+
+        params: _Slot = _Slot(
+            "0" * 6,
+            "0" * self._CODE_LENGTH
+        )
 
         # ---- resume previous operation. ---- #
 
@@ -69,64 +86,78 @@ class ZLibraryMeta(Scraper):
         if self._args.need_state_resume and path.isfile(self._resume_filepath):
             with open(self._resume_filepath, "r") as resume_file:
                 line: str = resume_file.readline()
-                parts: list = line.split(":")
+                parts: list = line.split("::")
 
-                self._slots[0].group = parts[0]
-                self._slots[0].code = parts[1]
+                params.group = parts[0]
+                params.code = parts[1]
 
         # ---- start mining. ---- #
 
-        print("type \"q\" to stop:")
-        pool.submit(self._task, self._slots[0])
+        try:
+            while not self._aborted and params.group != "z" * self._MAX_GROUP_LENGTH:
+                while not self._aborted and params.code != "z" * self._CODE_LENGTH:
+                    params.result = 0
 
-        while self._slots:
-            # user requests early exit.
-            if input() in ["q", "Q"]:
-                self._aborted = True
-                break
+                    test: Thread = Thread(target=self._task_test_combo, args=[params])
+                    test.start()
+                    test.join(4.0)
+
+                    # thread died.
+                    if test.is_alive():
+                        print("timed out.")
+                        continue
+
+                    # found something.
+                    if params.result == 1:
+                        # log not open yet.
+                        if not result_log:
+                            makedirs(self._args.output, exist_ok=True)
+                            result_log = open(f"{self._args.output}/{self._name}_results.txt", "w+")
+
+                        result_log.write(f"{params.group}::{hash}\n")
+
+                    params.code = self._increment_ordinator_string(params.code)
+
+                # not aborted.
+                if not self._aborted:
+                    params.group = self._increment_ordinator_string(params.group)
+
+        except:
+            pass
+
+        # ---- store current operation. ---- #
 
         # need to store current operation.
         if self._args.need_state_resume :
             with open(self._resume_filepath, "w") as resume_file:
-                resume_file.write(f"{self._slots[0].group}:{self._slots[0].code}")
-
-        print(Strings.OP_FINISHED.format(self._name))
+                resume_file.write(f"{params.group}::{params.code}")
 
 
-    def _task(self, slot: _Slot):
-        result_log = None
+    def _task_test_combo(self, params: _Slot):
+        group_hash: str = f"{params.group}::{params.code}"
+        print(f"testing: {group_hash} ... ", end="")
 
-        while(
-            not self._aborted and
-            slot.code != "z" * self._CODE_LENGTH
-        ):
-            group_hash: str = f"{slot.group}/{slot.code}"
-            print(f"testing: {group_hash} ... ", end="")
+        probe_url: str = f"{self._domain}/book/{group_hash}"
+        probe_response: Response = self._sess.get(probe_url)
 
-            probe_url: str = f"{self._domain}/book/{group_hash}"
-            probe_response: Response = self._sess.get(probe_url)
+        # book.
+        if "class=\"books/details\"" in probe_response.text:
+            print("book page.")
+            params.result = 1
 
-            page_soup: BeautifulSoup = BeautifulSoup(probe_response.text, "html.parser")
-            book_page = page_soup.find("body", {"class": "books/details"})
+        # page not found.
+        elif "<title>Page not found</title>" in probe_response.text:
+            print("nothing.")
 
-            # found a book page.
-            if book_page:
-                print("found book page.")
+        # server overburdened.
+        elif "Too many requests from your IP." in probe_response.text:
+            print("server overburdened.")
+            sleep(20)
 
-                # log not open yet.
-                if not result_log:
-                    makedirs(self._args.output, exist_ok=True)
-                    result_log = open(f"{self._args.output}/{self._name}_results.txt", "w+")
-
-                result_log.write(f"{group_hash}\n")
-
-            # found nothing.
-            else:
-                print()
-
-            slot.code = self._increment_ordinator_string(slot.code)
-
-        del slot
+        # something unexpected.
+        else:
+            print("something else.")
+            print(probe_response.text)
 
 
     def _increment_ordinator_string(self, ord_string: str) -> str:

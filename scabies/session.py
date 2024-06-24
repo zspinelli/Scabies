@@ -9,7 +9,7 @@ from requests.adapters import HTTPAdapter
 
 
 _HTTP_HEADERS: tuple = (
-    ("User-Agent", "Mozilla/5.0 ({}; rv:102.0) Gecko/20100101 Firefox/102.0"),
+    ("User-Agent", "Mozilla/5.0 ({}; rv:127.0) Gecko/20100101 Firefox/127.0"),
     ("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"),
     ("Accept-Language", "en-US,en;q=0.5"),
     ("Accept-Encoding", "gzip, deflate"),
@@ -26,7 +26,7 @@ _HTTP_HEADERS: tuple = (
 
 
 class ScabiesSession(Session):
-    def __init__(self, interval: int = 0):
+    def __init__(self, interval: int):
         super().__init__()
 
         self._request_interval: int = interval
@@ -101,6 +101,6 @@ class ScabiesSession(Session):
         return response
 
 
-def new(interval: int) -> ScabiesSession:
+def new(interval: int = 0) -> ScabiesSession:
     sess: ScabiesSession = ScabiesSession(interval)
     return sess
